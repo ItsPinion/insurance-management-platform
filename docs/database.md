@@ -95,11 +95,18 @@ DB_DRIVER=auto
 Then, from the repository root:
 
 ```bash
+npm run db:ping       # preflight: endpoint, driver, latency, TimeZone, row counts
 npm run db:migrate    # creates the schema in Neon (server/drizzle/*.sql)
 npm run db:seed       # the three demo accounts
 npm run db:reset      # optional: the full demo dataset
 npm run dev           # API on :5000, client on :5173
 ```
+
+`npm run db:ping` (`server/scripts/check-db.js`) is the first thing to run when a
+connection does not work: it reports the driver the URL resolved to, the masked
+endpoint, the round-trip, the server's `TimeZone`, the tables with their row counts
+and the migration state, and exits non-zero with a specific hint (DNS failure,
+refused connection, reset by a firewall, wrong password, missing database …).
 
 Three details worth knowing:
 
@@ -220,10 +227,13 @@ export const db =
   driver failures in a `DrizzleQueryError`, so `error.js` unwraps `.cause`
   before looking at the code — which works for both drivers, because Neon's
   gateway answers HTTP 400 with the same `code` field on `NeonDbError`.
-* **`NEON_FETCH_ENDPOINT`** redirects the HTTP driver to another gateway. It is
-  how `server/tests/neon-driver.test.mjs` (and the whole suite) exercise the Neon
-  code path offline against `tests/helpers/neon-http-proxy.mjs`, and it is the
-  knob for a deployment that reaches Neon through its own proxy.
+* **`NEON_FETCH_ENDPOINT`** redirects the HTTP driver to another gateway. It is how
+  `npm run db:gateway` + `server/tests/neon-driver.test.mjs` (and, with it set, the
+  whole suite) exercise the Neon code path offline against
+  `tests/helpers/neon-http-proxy.mjs`; it is also the knob for a deployment that
+  reaches Neon through its own proxy. `LOCAL_DATABASE_URL` tells that gateway which
+  cluster to forward to when `DATABASE_URL` itself is not reachable over the wire
+  protocol.
 
 ### Upgrading a database that Prisma created
 

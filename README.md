@@ -67,12 +67,14 @@ insurance-management-platform/        # Turborepo root
 | `npm run test:parity` | replay the 31 captured responses and compare them with the Prisma baseline |
 | `npm run test:driver` | run one workload through both database drivers and require identical JSON |
 | `npm run screenshots` | 23 screens + the DOM audit → `docs/screenshots/` |
+| `npm run db:ping` | preflight — driver, endpoint, latency, row counts, migration state |
 | `npm run db:migrate` | apply `server/drizzle/*.sql` to the database |
 | `npm run db:generate` | diff `src/db/schema.js` and write a new migration |
 | `npm run db:push` | push the schema straight to the database (local experiments) |
 | `npm run db:studio` | browse the data in Drizzle Studio |
 | `npm run db:seed` | the three base accounts (admin / agent / customer) |
 | `npm run db:reset` | the demo dataset (customers, policies, claims, payments) |
+| `npm run db:gateway` | offline stand-in for Neon's SQL-over-HTTP gateway, for exercising the `neon` driver without a route to Neon |
 
 Every command can be narrowed to one workspace, e.g.
 `npx turbo run test --filter=insurance-server` or
@@ -105,6 +107,7 @@ npm install
 
 # 2. API setup (a Neon project — or any PostgreSQL you already have)
 cp server/.env.example server/.env    # DATABASE_URL (Neon's pooled string) + JWT_SECRET
+npm run db:ping                        # preflight: reachable? which driver? schema there?
 npm run db:migrate                     # create the schema (server/drizzle → Neon)
 npm run db:seed                        # admin / agent / customer accounts
 
@@ -136,6 +139,11 @@ DB_DRIVER=auto          # auto | neon | pg
 | `neon` | `@neondatabase/serverless` over HTTPS (`drizzle-orm/neon-http`) | Neon by default: no sockets held open, works on serverless runtimes, cannot exhaust the pool |
 | `pg` | `node-postgres` pool over TCP + TLS (`drizzle-orm/node-postgres`) | a long-lived server, or a local cluster for offline work |
 | `auto` (default) | `neon` for `*.neon.tech` / `*.neon.ai` hosts, `pg` for everything else | nothing to re-configure when you switch |
+
+`npm run db:ping` prints what the process actually resolved — endpoint (password
+masked), driver, round-trip, `TimeZone`, row counts and whether every migration in
+`server/drizzle/` is applied — and exits non-zero with the reason and a hint when the
+database is not usable. Run it first whenever a connection is in question.
 
 Both drivers run the same Drizzle queries against the same schema, and a local
 PostgreSQL keeps working as a fallback (`DATABASE_URL` pointed at `localhost`) —

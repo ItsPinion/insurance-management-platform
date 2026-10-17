@@ -9,6 +9,8 @@
     "start": "node src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:ping": "node scripts/check-db.js",
+    "db:gateway": "node tests/helpers/neon-http-proxy.mjs --port 5433",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node scripts/seed.js",

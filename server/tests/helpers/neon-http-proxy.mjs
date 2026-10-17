@@ -121,7 +121,10 @@ export async function startNeonHttpProxy({ target, port = 0 }) {
     res.end(JSON.stringify(batched ? { results } : results[0]));
   });
 
-  await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', resolve);
+  });
   const address = server.address();
 
   return {
@@ -143,10 +146,28 @@ if (process.argv[1] && process.argv[1].endsWith('neon-http-proxy.mjs')) {
     const index = process.argv.indexOf(`--${name}`);
     return index === -1 ? undefined : process.argv[index + 1];
   };
-  const proxy = await startNeonHttpProxy({
-    target: arg('target') ?? process.env.DATABASE_URL,
-    port: Number(arg('port') ?? 0),
-  });
+  // --target wins, then LOCAL_DATABASE_URL (a cluster reachable over the wire
+  // protocol), then DATABASE_URL — which is the Neon URL itself when there is a
+  // route to Neon, so the gateway can front the real project too.
+  const target =
+    arg('target') ?? process.env.LOCAL_DATABASE_URL ?? process.env.DATABASE_URL;
+  if (!target) {
+    console.error('neon-http-proxy: set --target, LOCAL_DATABASE_URL or DATABASE_URL');
+    process.exit(1);
+  }
+  let proxy;
+  try {
+    proxy = await startNeonHttpProxy({ target, port: Number(arg('port') ?? 0) });
+  } catch (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `❌ Port ${arg('port') ?? 5433} is already in use — another gateway is running ` +
+          `(lsof -i :${arg('port') ?? 5433}), or start this one on another port with --port.`,
+      );
+      process.exit(1);
+    }
+    throw err;
+  }
   console.log(`Neon HTTP gateway mock listening on ${proxy.endpoint}`);
-  console.log(`Forwarding to ${arg('target') ?? process.env.DATABASE_URL}`);
+  console.log(`Forwarding to ${target.replace(/\/\/([^:]+):([^@]*)@/, '//$1:••••••@')}`);
 }

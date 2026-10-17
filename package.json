@@ -24,6 +24,8 @@
     "screenshots": "turbo run screenshots",
     "db:generate": "npm run db:generate --workspace insurance-server",
     "db:migrate": "npm run db:migrate --workspace insurance-server",
+    "db:ping": "npm run db:ping --workspace insurance-server",
+    "db:gateway": "npm run db:gateway --workspace insurance-server",
     "db:push": "npm run db:push --workspace insurance-server",
     "db:studio": "npm run db:studio --workspace insurance-server",
     "db:seed": "npm run db:seed --workspace insurance-server",

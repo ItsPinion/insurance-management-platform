@@ -6,12 +6,20 @@
  * in any time zone, from the same data — so this file runs one workload through each
  * driver and compares the results.
  *
- * There is no network route to Neon from a test run, so the HTTP driver talks to
- * `tests/helpers/neon-http-proxy.mjs`: a local stand-in for Neon's SQL-over-HTTP
- * gateway that forwards statements to the real cluster and answers in Neon's text
- * protocol. The SQL, the type OIDs and the driver's parsing are the real ones.
+ * The HTTP driver is pointed at `tests/helpers/neon-http-proxy.mjs`: a local
+ * stand-in for Neon's SQL-over-HTTP gateway that forwards statements to a real
+ * cluster and answers in Neon's text protocol. The SQL, the type OIDs and the
+ * driver's parsing are the production ones — only the network hop is local, so the
+ * file runs with or without a route to Neon.
  *
- * Usage:  npm run test:driver   (needs a reachable PostgreSQL + DATABASE_URL)
+ * Usage:  npm run test:driver
+ *   DATABASE_URL        what the app is configured with (a Neon URL exercises the
+ *                       neon driver; a local URL exercises pg) — the test points the
+ *                       HTTP driver at the gateway itself, so this only decides
+ *                       which driver the *application module* picks
+ *   LOCAL_DATABASE_URL    the cluster the gateway forwards to; defaults to
+ *                       DATABASE_URL, so against a real Neon project both drivers read
+ *                       and write that project
  */
 // Pinned before anything is imported, because a naive `timestamp` column is exactly
 // where a local-time parse shows up: Asia/Kolkata is a half-hour-free offset that is
@@ -44,10 +52,13 @@ before(async () => {
   // resolved here rather than at import time: the suite runs with the connection
   // string in `server/.env`, which `dotenv` has not read at module scope
   await import('dotenv/config');
-  localUrl = process.env.DATABASE_URL;
+  // the gateway needs a cluster it can reach over the wire protocol; when the app is
+  // configured with a Neon URL that is what it forwards to, unless a second cluster
+  // is named explicitly
+  localUrl = process.env.LOCAL_DATABASE_URL ?? process.env.DATABASE_URL;
   assert.ok(
     localUrl,
-    'this test needs a PostgreSQL cluster — set DATABASE_URL or create server/.env',
+    'this test needs a PostgreSQL cluster — set DATABASE_URL (or LOCAL_DATABASE_URL) or create server/.env',
   );
 
   proxy = await startNeonHttpProxy({ target: localUrl });

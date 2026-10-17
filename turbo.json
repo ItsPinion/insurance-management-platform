@@ -4,8 +4,9 @@
   "globalDependencies": ["**/.env", "**/.env.*local"],
   "globalEnv": [
     "DATABASE_URL",
-    "DB_DRIVER",
     "DATABASE_POOL_MAX",
+    "DB_DRIVER",
+    "LOCAL_DATABASE_URL",
     "NEON_FETCH_ENDPOINT",
     "JWT_SECRET",
     "JWT_EXPIRES_IN",
@@ -89,7 +90,7 @@
     "test:driver": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "env": ["DATABASE_URL", "DB_DRIVER", "NEON_FETCH_ENDPOINT", "NODE_OPTIONS"]
+      "env": ["DATABASE_URL", "LOCAL_DATABASE_URL", "DB_DRIVER", "NEON_FETCH_ENDPOINT", "NODE_OPTIONS"]
     },
     "test:parity": {
       "dependsOn": ["^build"],
@@ -117,6 +118,15 @@
       "cache": false,
       "outputs": [],
       "env": ["DATABASE_URL"]
+    },
+    "db:ping": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:gateway": {
+      "cache": false,
+      "persistent": true,
+      "outputs": []
     },
     "db:studio": {
       "cache": false,

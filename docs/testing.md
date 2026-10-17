@@ -334,16 +334,33 @@ with `NEON_FETCH_ENDPOINT`, which also makes it possible to run the *whole* suit
 against an API that talks Neon's protocol:
 
 ```bash
-# 1. the gateway, in front of the local cluster
-node server/tests/helpers/neon-http-proxy.mjs --port 5433 --target "<local DATABASE_URL>"
+# 1. the gateway, in front of a reachable cluster (LOCAL_DATABASE_URL, or --target)
+npm run db:gateway
 
-# 2. the API, configured as if it were talking to Neon
-DATABASE_URL="postgresql://u:p@ep-x-pooler.us-east-1.aws.neon.tech/db?sslmode=require" \
-NEON_FETCH_ENDPOINT="http://127.0.0.1:5433/sql" npm run dev --workspace insurance-server
+# 2. the API, configured with a Neon URL but answering through the gateway
+NEON_FETCH_ENDPOINT="http://127.0.0.1:5433/sql" npm run dev
 
 # 3. every suite, unchanged
 npm test
 ```
+
+`npm run db:ping` is the one-command version of "is this database usable": it prints
+the driver the URL resolved to, the masked endpoint, the latency, the server
+`TimeZone`, the row counts and the migration state, and exits non-zero with a hint
+when it is not. For a workshop machine (or anywhere with a route to Neon) the
+checklist is:
+
+```bash
+npm install
+cp server/.env.example server/.env     # paste Neon's pooled string + JWT_SECRET
+npm run db:ping                        # → "✔ Ready — the API can use this database."
+npm run db:migrate && npm run db:seed && npm run db:reset
+npm run dev                            # "(database driver: neon)" + "✅ Database connected"
+npm test                               # 92 server assertions + 6 sign-in scenarios
+```
+
+Against an unreachable host — a firewall, a suspended project — `db:ping` is a
+diagnosis rather than a crash: `cannot reach the database (…) ↳ hint`.
 
 ### Result
 
