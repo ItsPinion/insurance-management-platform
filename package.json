@@ -20,6 +20,7 @@
     "test": "turbo run test",
     "test:login": "turbo run test:login",
     "test:parity": "npm run test:parity --workspace insurance-server",
+    "test:driver": "npm run test:driver --workspace insurance-server",
     "screenshots": "turbo run screenshots",
     "db:generate": "npm run db:generate --workspace insurance-server",
     "db:migrate": "npm run db:migrate --workspace insurance-server",

@@ -13,7 +13,7 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 | Monorepo | Turborepo 2 + npm workspaces |
 | Frontend | React.js + Tailwind CSS |
 | Backend | Node.js + Express.js |
-| Database | PostgreSQL + Drizzle ORM (typed schema in code, `drizzle-kit` migrations) |
+| Database | **Neon** (managed PostgreSQL) + Drizzle ORM · typed schema in code, `drizzle-kit` migrations · `@neondatabase/serverless` over HTTPS or a `pg` pool, picked by `DB_DRIVER` |
 | Auth | JWT + bcrypt |
 | Uploads | Multer |
 | Validation | Zod |
@@ -43,10 +43,11 @@ insurance-management-platform/        # Turborepo root
 │   ├── src/
 │   │   ├── app.js         # Express app wiring
 │   │   ├── index.js       # entrypoint
-│   │   ├── db/            # schema.js (tables, enums, relations) + index.js (pg pool)
+│   │   ├── db/            # schema.js (tables, enums, relations) + index.js (driver + client)
 │   │   ├── middleware/    # auth (JWT + roles), error handling
 │   │   └── modules/       # auth/, customers/  (routes / controller / schemas)
-│   └── tests/             # api.test.mjs, schema.test.mjs, seed + reset scripts
+│   └── tests/             # api / schema / parity / driver tests, seed + reset scripts,
+│                        # tests/helpers/neon-http-proxy.mjs (offline Neon gateway)
 └── docs/
     ├── requirements.md    # Requirement analysis (Day 1)
     ├── wireframes.html    # Low-fi UI wireframes (Day 1)
@@ -62,8 +63,9 @@ insurance-management-platform/        # Turborepo root
 | `npm run dev` | the API and the client together, in parallel (one command, two processes) |
 | `npm run build` | the production build of the client |
 | `npm run lint` | oxlint over the client |
-| `npm test` | the API suite, the schema drift check, the Prisma→Drizzle parity check and the browser sign-in suite |
+| `npm test` | the API suite, the schema drift check, the Prisma→Drizzle parity check, the Neon-vs-pg driver equality check and the browser sign-in suite |
 | `npm run test:parity` | replay the 31 captured responses and compare them with the Prisma baseline |
+| `npm run test:driver` | run one workload through both database drivers and require identical JSON |
 | `npm run screenshots` | 23 screens + the DOM audit → `docs/screenshots/` |
 | `npm run db:migrate` | apply `server/drizzle/*.sql` to the database |
 | `npm run db:generate` | diff `src/db/schema.js` and write a new migration |
@@ -101,9 +103,9 @@ Every command can be narrowed to one workspace, e.g.
 # 1. install the whole monorepo (one command, one lockfile)
 npm install
 
-# 2. API setup (needs PostgreSQL)
-cp server/.env.example server/.env    # fill in DATABASE_URL + JWT_SECRET
-npm run db:migrate                     # create the schema (server/drizzle → database)
+# 2. API setup (a Neon project — or any PostgreSQL you already have)
+cp server/.env.example server/.env    # DATABASE_URL (Neon's pooled string) + JWT_SECRET
+npm run db:migrate                     # create the schema (server/drizzle → Neon)
 npm run db:seed                        # admin / agent / customer accounts
 
 # 3. run the API and the client together
@@ -116,7 +118,30 @@ banner. If either cannot start, it says why (missing `DATABASE_URL`, port
 already in use, database unreachable) instead of failing silently.
 
 There is no code-generation step: the Drizzle schema **is** the client, so
-`npm run db:migrate` is the only database setup command.
+`npm run db:migrate` is the only database setup command. Nothing runs a local
+database — `DATABASE_URL` is the whole database configuration.
+
+### Which database, and how the API reaches it
+
+The project targets **Neon**: in the console, copy *Project → Connection details →
+Pooled connection* into `server/.env`, keeping the `?sslmode=require` suffix.
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx-pooler.us-east-1.aws.neon.tech/dbname?sslmode=require"
+DB_DRIVER=auto          # auto | neon | pg
+```
+
+| `DB_DRIVER` | Route | Used for |
+|---|---|---|
+| `neon` | `@neondatabase/serverless` over HTTPS (`drizzle-orm/neon-http`) | Neon by default: no sockets held open, works on serverless runtimes, cannot exhaust the pool |
+| `pg` | `node-postgres` pool over TCP + TLS (`drizzle-orm/node-postgres`) | a long-lived server, or a local cluster for offline work |
+| `auto` (default) | `neon` for `*.neon.tech` / `*.neon.ai` hosts, `pg` for everything else | nothing to re-configure when you switch |
+
+Both drivers run the same Drizzle queries against the same schema, and a local
+PostgreSQL keeps working as a fallback (`DATABASE_URL` pointed at `localhost`) —
+`npm run test:driver` proves the two routes answer identically. `drizzle-kit`
+(`db:migrate`, `db:push`, `db:studio`) always connects over the wire protocol, which
+Neon's pooled endpoint accepts. See [docs/database.md](docs/database.md#setup--neon).
 
 Prefer one package on its own? Use the workspace commands directly:
 `npm run dev --workspace client` or `npm run dev --workspace insurance-server`.
@@ -137,7 +162,7 @@ policies, claims, payments and documents — for manual testing and screenshots.
 ```bash
 npm run dev            # terminal 1 — the app has to be running
 
-npm test               # terminal 2 — 85 server assertions + 6 sign-in scenarios
+npm test               # terminal 2 — 92 server assertions + 6 sign-in scenarios
 npm run screenshots    # terminal 3 — 23 screens + DOM audit → docs/screenshots/
 ```
 

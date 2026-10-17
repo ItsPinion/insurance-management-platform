@@ -3,7 +3,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { db, pool } from '../src/db/index.js';
+import { close, db } from '../src/db/index.js';
 import { customers, users } from '../src/db/schema.js';
 
 const baseUsers = [
@@ -45,4 +45,4 @@ await db
   .onConflictDoNothing({ target: customers.email });
 console.log('✔ Demo customer profile linked');
 
-await pool.end();
+await close();

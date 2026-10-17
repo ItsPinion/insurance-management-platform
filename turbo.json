@@ -2,6 +2,15 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "globalDependencies": ["**/.env", "**/.env.*local"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "DB_DRIVER",
+    "DATABASE_POOL_MAX",
+    "NEON_FETCH_ENDPOINT",
+    "JWT_SECRET",
+    "JWT_EXPIRES_IN",
+    "PORT"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -31,16 +40,26 @@
         "API_BASE_URL",
         "APP_URL",
         "CHROME_PATH",
+        "DATABASE_URL",
+        "DB_DRIVER",
         "FONTCONFIG_PATH",
         "HOME",
+        "JWT_SECRET",
         "LD_LIBRARY_PATH",
+        "NEON_FETCH_ENDPOINT",
         "NODE_OPTIONS"
       ]
     },
     "test:schema": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "env": ["NODE_OPTIONS"]
+      "env": [
+        "DATABASE_URL",
+        "DB_DRIVER",
+        "JWT_SECRET",
+        "NEON_FETCH_ENDPOINT",
+        "NODE_OPTIONS"
+      ]
     },
     "test:login": {
       "cache": false,
@@ -67,10 +86,22 @@
         "OUT_DIR"
       ]
     },
+    "test:driver": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": ["DATABASE_URL", "DB_DRIVER", "NEON_FETCH_ENDPOINT", "NODE_OPTIONS"]
+    },
     "test:parity": {
       "dependsOn": ["^build"],
       "outputs": [],
-      "env": ["API_BASE_URL", "DATABASE_URL", "NODE_OPTIONS"]
+      "env": [
+        "API_BASE_URL",
+        "DATABASE_URL",
+        "DB_DRIVER",
+        "JWT_SECRET",
+        "NEON_FETCH_ENDPOINT",
+        "NODE_OPTIONS"
+      ]
     },
     "db:generate": {
       "cache": false,

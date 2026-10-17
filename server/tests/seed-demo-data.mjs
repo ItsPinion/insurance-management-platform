@@ -6,7 +6,7 @@
  */
 import 'dotenv/config';
 import { eq, inArray } from 'drizzle-orm';
-import { db, pool } from '../src/db/index.js';
+import { close, db } from '../src/db/index.js';
 import { claims, customers, documents, policies, premiumPayments } from '../src/db/schema.js';
 import { DEMO_CUSTOMERS } from './fixtures/demo-data.mjs';
 
@@ -97,4 +97,4 @@ for (const d of DEMO_CUSTOMERS) {
   console.log(`✔ ${customer.name} — ${d.policies.length} policies, ${d.documents.length} documents`);
 }
 
-await pool.end();
+await close();

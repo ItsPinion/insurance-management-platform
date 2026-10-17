@@ -30,7 +30,7 @@ dotenv.config({ path: path.join(SERVER_ROOT, '.env'), quiet: true });
 // The Drizzle schema is plain JavaScript, so the expectation is derived from
 // the very object the application queries with — nothing to re-parse.
 const schemaModule = await import('../src/db/schema.js');
-const { pool } = await import('../src/db/index.js');
+const { close, ping, query: rawQuery } = await import('../src/db/index.js');
 
 const tables = Object.values(schemaModule).filter((value) => value instanceof PgTable);
 const enums = Object.values(schemaModule)
@@ -106,21 +106,21 @@ const sql = {
       FROM drizzle.__drizzle_migrations`,
 };
 
-const query = async (key) => (await pool.query(sql[key])).rows;
+const query = async (key) => rawQuery(sql[key]);
 
-let poolReady = false;
+let dbReady = false;
 
 before(async () => {
-  await pool.query('SELECT 1');
-  poolReady = true;
+  await ping();
+  dbReady = true;
 });
 
 after(async () => {
-  if (poolReady) await pool.end();
+  if (dbReady) await close();
 });
 
 const guard = (fn) => async () => {
-  assert.ok(poolReady, 'the database must be reachable for the schema checks');
+  assert.ok(dbReady, 'the database must be reachable for the schema checks');
   return fn();
 };
 

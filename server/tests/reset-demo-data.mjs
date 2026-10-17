@@ -9,7 +9,7 @@
  */
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { db, pool } from '../src/db/index.js';
+import { close, db } from '../src/db/index.js';
 import {
   claims,
   customers,
@@ -123,5 +123,5 @@ for (const d of DEMO_CUSTOMERS) {
   console.log(`✔ ${customer.name} — ${d.policies.length} policies, ${d.documents.length} documents`);
 }
 
-await pool.end();
+await close();
 console.log('\nDemo database ready.');

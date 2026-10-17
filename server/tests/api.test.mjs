@@ -86,7 +86,7 @@ after(async () => {
   // if the database is not reachable from the test process the demo data can
   // be restored with `npm run db:reset`.
   try {
-    const [{ db, pool }, { customers, users }, { ilike, or }] = await Promise.all([
+    const [{ close, db }, { customers, users }, { ilike, or }] = await Promise.all([
       import('../src/db/index.js'),
       import('../src/db/schema.js'),
       import('drizzle-orm'),
@@ -113,7 +113,7 @@ after(async () => {
           ilike(customers.email, 'baseline.customer.%'),
         ),
       );
-    await pool.end();
+    await close();
   } catch {
     /* no direct database access from the test process — nothing to clean up */
   }

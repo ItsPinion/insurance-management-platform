@@ -14,6 +14,7 @@ Everything below is repeatable from a clean checkout — no manual steps.
 | API endpoints (48 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 48/48 pass |
 | Database schema (7 checks) | `node:test` + Drizzle schema metadata | `server/tests/schema.test.mjs` | 7/7 pass |
 | Response parity vs the Prisma implementation (31 responses) | `node:test` + `fetch` | `server/tests/orm-parity.test.mjs` | 30/30 tests, 31/31 responses identical |
+| Database drivers (Neon HTTP vs `pg` pool, 7 checks) | `node:test` + a local Neon gateway stand-in | `server/tests/neon-driver.test.mjs` | 7/7 pass, both drivers byte-identical under `TZ=Asia/Kolkata` |
 | Sign-in flow (6 scenarios) | Puppeteer + Chromium | `client/tests/login-flow.mjs` | 6/6 pass |
 | UI screens (23 screens) | Puppeteer + Chromium | `client/tests/screenshots.mjs` | 23/23 captured, 0 UI issues |
 | Static analysis | oxlint | `client/` | 0 errors |
@@ -252,8 +253,8 @@ The same suite was run against a **brand-new database**
 85/85 — which is the proof that the Drizzle migrations alone are enough to
 build the whole schema from scratch.
 
-Totals for `npm test`: **85 server assertions** (48 API + 7 schema drift +
-30 parity) and **6 browser sign-in scenarios**.
+Totals for `npm test`: **92 server assertions** (48 API + 7 schema drift +
+30 parity + 7 driver equality) and **6 browser sign-in scenarios**.
 
 ---
 
@@ -304,3 +305,61 @@ accounts).
 | `day3-13-unknown-route-redirect.png` | Unknown route → customer list |
 | `day3-14-agent-view.png` | Customer list as an agent |
 | `day3-15-customer-created.png` | The list right after creating a customer |
+
+---
+
+## 10. Database driver verification (local PostgreSQL → Neon)
+
+The API was moved from a locally installed PostgreSQL to **Neon**. Nothing in
+the routes, the schema or the responses changed, and that is checked from both
+sides.
+
+| Question | Evidence |
+|---|---|
+| Does the database still look the same? | `server/tests/schema.test.mjs` (7 checks) runs against the live database and compares it with the Drizzle schema objects and the migration journal — independent of the driver used to read it |
+| Do the responses still look the same? | `server/tests/orm-parity.test.mjs` replays the 31 captured Prisma responses; it was run against an API on each driver and both runs report **31/31 identical** |
+| Do the two drivers agree? | `server/tests/neon-driver.test.mjs` runs one workload (reads, a grouped `count`, a cross-driver write/read, a unique violation, a `defaultNow()` column) through **both** drivers in the same process and compares the serialised results — 7/7 |
+| Is a date still the date that was typed in? | the driver test pins `process.env.TZ = 'Asia/Kolkata'` before anything is imported, so a driver that parsed `timestamp without time zone` in local time would shift `dob` by 5:30 and fail |
+| Is the HTTP path really being exercised? | the test asserts the gateway saw the statements, and it fails when `DATABASE_URL`'s host does not select the `neon` driver |
+
+### The offline Neon gateway
+
+A test run has no route to `neon.tech`, so `server/tests/helpers/neon-http-proxy.mjs`
+stands in for Neon's SQL-over-HTTP gateway: it answers `POST /sql` in the same shape
+(`{ query, params }` in, `{ fields, rows }` out with **every value in PostgreSQL's
+text format**, HTTP 400 with `{ message, code }` on failure) and forwards each
+statement to a real cluster. The driver, the SQL, the type OIDs and the parsing are
+the production ones — only the network hop is local. The application points at it
+with `NEON_FETCH_ENDPOINT`, which also makes it possible to run the *whole* suite
+against an API that talks Neon's protocol:
+
+```bash
+# 1. the gateway, in front of the local cluster
+node server/tests/helpers/neon-http-proxy.mjs --port 5433 --target "<local DATABASE_URL>"
+
+# 2. the API, configured as if it were talking to Neon
+DATABASE_URL="postgresql://u:p@ep-x-pooler.us-east-1.aws.neon.tech/db?sslmode=require" \
+NEON_FETCH_ENDPOINT="http://127.0.0.1:5433/sql" npm run dev --workspace insurance-server
+
+# 3. every suite, unchanged
+npm test
+```
+
+### Result
+
+| Run | Driver | Result |
+|---|---|---|
+| local PostgreSQL, `DB_DRIVER=pg` | `pg` pool | **92/92** |
+| local PostgreSQL behind the Neon gateway, `DB_DRIVER=neon` | `@neondatabase/serverless` over HTTPS | **92/92**, same 31/31 responses |
+
+Two behaviours were written for the HTTP driver specifically, both documented in
+`docs/database.md`: no `db.transaction()` / `PREPARE` / session `SET` anywhere in
+the API (the gateway has no session), and `close()` instead of `pool.end()` in the
+scripts and tests, because the HTTP driver holds nothing to release.
+
+`turbo.json` lists `DATABASE_URL`, `DB_DRIVER`, `NEON_FETCH_ENDPOINT`,
+`DATABASE_POOL_MAX`, `JWT_SECRET`, `JWT_EXPIRES_IN` and `PORT` in `globalEnv`, so
+an override on the command line reaches the task process — Turborepo does not
+forward environment variables that its config does not know about, and `server/.env`
+(dotenv) remains the place the values normally live.
+

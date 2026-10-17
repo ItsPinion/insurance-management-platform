@@ -166,14 +166,14 @@ test(`${titleFor(keyFor(WRITE_CASES.id))} · ${titleFor(keyFor(WRITE_CASES.updat
 after(async () => {
   // the register and create cases add rows — remove them again
   try {
-    const [{ db, pool }, { customers, users }, { eq }] = await Promise.all([
+    const [{ close, db }, { customers, users }, { eq }] = await Promise.all([
       import('../src/db/index.js'),
       import('../src/db/schema.js'),
       import('drizzle-orm'),
     ]);
     await db.delete(users).where(eq(users.email, `baseline.${stamp}@insure.test`));
     await db.delete(customers).where(eq(customers.email, `baseline.customer.${stamp}@insure.test`));
-    await pool.end();
+    await close();
   } catch {
     /* no direct database access from the test process — nothing to clean up */
   }

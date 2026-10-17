@@ -1,12 +1,13 @@
 # Database Design — Day 2 Deliverable
 
-PostgreSQL · Drizzle ORM (`drizzle-orm` 0.45 + `drizzle-kit`) · migration `drizzle/0000_init`
+Neon-hosted PostgreSQL · Drizzle ORM (`drizzle-orm` 0.45 + `drizzle-kit`) ·
+`@neondatabase/serverless` 1.2 / `pg` 8.23 · migration `drizzle/0000_init`
 
 The schema lives in code: `server/src/db/schema.js` declares the seven tables,
 the six enums, the indexes and the relations, and `drizzle-kit generate` turns
 that declaration into the SQL migrations in `server/drizzle/`. There is no
-generated client and no query engine to download — `pg` speaks the protocol
-directly.
+generated client and no query engine to download — the API speaks the database's
+own protocol, over Neon's HTTP/S gateway or a `pg` socket.
 
 ## Entity-Relationship Diagram
 
@@ -78,7 +79,44 @@ directly.
    list and the history timeline deterministic instead of "whatever order the
    planner happened to pick" for rows written in the same millisecond.
 
-## Local setup
+## Setup — Neon
+
+There is no database to install. In the [Neon console](https://console.neon.tech):
+create a project (any region, PostgreSQL 16/17 is fine), then copy
+**Project → Connection details → Pooled connection** and paste it into
+`server/.env`:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@ep-XXXX-pooler.<region>.aws.neon.tech/neondb?sslmode=require"
+JWT_SECRET="<at least 32 random characters>"
+DB_DRIVER=auto
+```
+
+Then, from the repository root:
+
+```bash
+npm run db:migrate    # creates the schema in Neon (server/drizzle/*.sql)
+npm run db:seed       # the three demo accounts
+npm run db:reset      # optional: the full demo dataset
+npm run dev           # API on :5000, client on :5173
+```
+
+Three details worth knowing:
+
+* **Use the pooled string** (`…-pooler…`, port 5432). The direct endpoint has no
+  pooler and is meant for `psql`/migrations from a fixed host; on `pg`'s pool the
+  app holds at most `DATABASE_POOL_MAX` (10) connections, and on the HTTP driver it
+  holds none.
+* **Keep `?sslmode=require`.** It is what turns TLS on for `node-postgres` and for
+  `drizzle-kit`; `server/drizzle.config.js` appends it if a pasted URL left it out.
+* **Leave the project's `TimeZone` at UTC.** `defaultNow()` on the naive
+  `timestamp(3)` columns is evaluated by the server, and the app reads those values
+  back as UTC instants.
+
+### Setup — local PostgreSQL (offline fallback)
+
+A local cluster needs no change to the code or the schema, which is why the test
+suite can run without a network route to Neon:
 
 ```bash
 # PostgreSQL role + database
@@ -86,7 +124,7 @@ sudo -u postgres psql -c "CREATE USER insurance WITH PASSWORD '<pw>' CREATEDB;"
 sudo -u postgres psql -c "CREATE DATABASE insurance_db OWNER insurance;"
 
 cd server
-cp .env.example .env         # fill in DATABASE_URL + JWT_SECRET
+cp .env.example .env         # point DATABASE_URL at localhost, fill in JWT_SECRET
 npm run db:migrate           # apply server/drizzle/*.sql
 npm run db:seed              # demo accounts
 npm run dev                  # API on :5000
@@ -134,33 +172,58 @@ byte of the existing database.
 
 ## Connection
 
-One `pg` pool, wrapped by Drizzle once, in `server/src/db/index.js`. The API,
-the seed scripts and the test suites all import that module, so there is a
-single place where the connection is configured:
+One module configures the database — `server/src/db/index.js` — and the API, the
+seed scripts and the test suites all import it. It exposes a Drizzle client plus
+four helpers (`query`, `execute`, `ping`, `close`) that hide the driver, so no
+route or script ever touches a pool directly:
 
 ```js
-export const pool = new Pool({ connectionString, options: '-c timezone=UTC' });
-export const db = drizzle(pool, { schema });
+export const driver = resolveDriver();            // 'neon' | 'pg'
+
+export const db =
+  driver === 'neon'
+    ? drizzleNeonHttp(neon(DATABASE_URL), { schema })          // HTTPS, no sockets
+    : drizzleNodePg(new Pool({ connectionString, options: '-c timezone=UTC' }), { schema });
 ```
+
+| `DB_DRIVER` | Driver | Shape of a request |
+|---|---|---|
+| `neon` | `@neondatabase/serverless` + `drizzle-orm/neon-http` | one HTTPS `POST` per statement to Neon's SQL gateway; no session, no transactions, no prepared statements |
+| `pg` | `node-postgres` pool + `drizzle-orm/node-postgres` | a pooled TCP+TLS connection per request batch |
+| `auto` (default) | `neon` for `*.neon.tech` / `*.neon.ai` hosts, `pg` otherwise | — |
 
 * **No engine, no codegen.** The earlier Prisma setup needed a query-engine
   binary; when it could not be downloaded the WASM engine refused to start
   without a driver adapter, which is what `npm run dev` tripped over. Drizzle
-  queries `pg` directly, so the API boots with nothing but `DATABASE_URL`.
-* **`timezone=UTC` on the session.** The timestamp columns are
+  queries the driver directly, so the API boots with nothing but `DATABASE_URL`.
+* **Why the app never uses `db.transaction()`, `PREPARE` or a session `SET`** —
+  none of them exist over Neon's HTTP gateway, and nothing in this API needs them:
+  every endpoint is a single statement or an idempotent pair, and the constraint
+  rules live in the schema.
+* **`timezone=UTC` on the `pg` session.** The timestamp columns are
   `timestamp(3)` without a time zone (as in the original design) and the API
   hands out `Date` objects; pinning the session to UTC keeps a date of birth
   written as `1990-04-12T00:00:00.000Z` coming back as exactly that instant,
-  whatever time zone the server runs in.
+  whatever time zone the server runs in. The HTTP driver has no session to pin, so
+  correctness there comes from Drizzle reading a naive timestamp as UTC text — and
+  `npm run test:driver` asserts the two agree from a non-UTC zone (Asia/Kolkata).
+* **Aggregates and decimals are mapped per column, not per driver.** `numeric(12,2)`
+  stays a string (`"24500"`) in both, and `count()` is parsed to a number by both,
+  so `pagination.total` is a JSON number either way.
 * **`updatedAt` is written by the application**, together with `createdAt`, the
   way Prisma's `@updatedAt` used to — the columns deliberately have no
   database default.
-* **Decimal money** comes back from `pg` as a string (`"24500"`), which is what
-  the client already formats with `Number(...).toFixed(2)`.
+* **Decimal money** comes back as a string (`"24500"`), which is what the client
+  already formats with `Number(...).toFixed(2)`.
 * **Errors** are mapped from SQLSTATE instead of Prisma error codes: `23505`
   (unique violation) → `409`, `23503` (foreign key) → `409`. Drizzle wraps
   driver failures in a `DrizzleQueryError`, so `error.js` unwraps `.cause`
-  before looking at the code.
+  before looking at the code — which works for both drivers, because Neon's
+  gateway answers HTTP 400 with the same `code` field on `NeonDbError`.
+* **`NEON_FETCH_ENDPOINT`** redirects the HTTP driver to another gateway. It is
+  how `server/tests/neon-driver.test.mjs` (and the whole suite) exercise the Neon
+  code path offline against `tests/helpers/neon-http-proxy.mjs`, and it is the
+  knob for a deployment that reaches Neon through its own proxy.
 
 ### Upgrading a database that Prisma created
 
@@ -209,7 +272,8 @@ order, every index and unique index exists with the same columns, every foreign
 key points at the right table, column and `ON DELETE` / `ON UPDATE` rule, and
 the applied migrations match `drizzle/meta/_journal.json`. It runs as part of
 `npm test`, so a migration that was never applied fails the suite instead of
-surfacing later as a runtime error.
+surfacing later as a runtime error. The same checks pass whether the API was
+pointed at Neon or at a local cluster (see `docs/testing.md` §10).
 
 ```bash
 npm test                              # API suite + schema check
