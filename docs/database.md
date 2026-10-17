@@ -80,6 +80,21 @@ node prisma/seed.js          # demo accounts
 npm run dev                  # API on :5000
 ```
 
+## Schema verification
+
+`server/tests/schema.test.mjs` parses `server/prisma/schema.prisma` and
+compares it with the live database: every model exists as a table, every
+column has the right type / nullability / default, every enum has the same
+values, every `@unique` has a unique index, every relation has a foreign key
+and every `@@index` exists. It runs as part of `npm test`, so a migration that
+was never applied fails the suite instead of surfacing later as a runtime
+error.
+
+```bash
+npm test                              # API suite + schema check
+npm run test:schema --workspace insurance-server   # the schema check alone
+```
+
 ## Seeded demo accounts
 
 | Role | Email | Password |

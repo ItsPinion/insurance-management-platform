@@ -12,6 +12,7 @@ Everything below is repeatable from a clean checkout — no manual steps.
 | Layer | Tool | Location | Result |
 |-------|------|----------|--------|
 | API endpoints (48 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 48/48 pass |
+| Database schema (7 checks) | `node:test` + Prisma | `server/tests/schema.test.mjs` | 7/7 pass |
 | Sign-in flow (6 scenarios) | Puppeteer + Chromium | `client/tests/login-flow.mjs` | 6/6 pass |
 | UI screens (23 screens) | Puppeteer + Chromium | `client/tests/screenshots.mjs` | 23/23 captured, 0 UI issues |
 | Static analysis | oxlint | `client/` | 0 errors |
@@ -27,7 +28,42 @@ single workspace can be run on its own with `--filter`.
 
 ---
 
-## 2. API test suite
+## 2. Day 1 – Day 3 coverage matrix
+
+Every requirement of the first three days, and where it is proved.
+
+### Day 1 — requirements & wireframes
+
+| Deliverable | Where | Verified by |
+|---|---|---|
+| Requirement analysis (FR-1 … FR-7, roles matrix, API surface) | `docs/requirements.md` | manual cross-check against the implementation and the API surface below |
+| Low-fidelity wireframes (8 key screens) | `docs/wireframes.html` | `day1-01-wireframes.png` (rendered from the file) |
+
+### Day 2 — database & authentication
+
+| Requirement | Implementation | Automated check | Screen |
+|---|---|---|---|
+| Prisma schema (7 models, 6 enums, FKs, indexes) | `server/prisma/schema.prisma` + `server/prisma/migrations/20261017130533_init` | `server/tests/schema.test.mjs` — 7 checks: tables, columns (type / nullability / default), enums, unique constraints, foreign keys, indexes, migration history | — |
+| ERD & design decisions | `docs/database.md` | matches the live database (same drift check) | — |
+| FR-1.1 register / login (bcrypt) | `POST /api/auth/register`, `POST /api/auth/login` | `api.test.mjs` — 201, 200, 409 duplicate, 400 validation, 401 wrong password | `day2-01`, `day2-02`, `day2-05`, `day2-06`, `day2-07` |
+| FR-1.2 JWT + `Authorization: Bearer` | `signToken()` in the auth controller, `requireAuth` middleware | `api.test.mjs` — 401 without a token, 401 with a tampered token | — |
+| FR-1.3 role guards (API **and** frontend) | `requireRole` middleware, `Protected` route in `App.jsx` | `api.test.mjs` — 403 for the wrong role on every guarded route | `day3-09` (customer sees only their own profile), `day3-14` (agent view) |
+| FR-1.4 admin creates accounts, customers self-register | `POST/GET /api/auth/users` (ADMIN), `POST /api/auth/register` | `api.test.mjs` — 201 agent, 400 invalid role, 403 for agent/customer | `day2-05` – `day2-07` (registration UI) |
+| Consistent JSON errors | `server/src/middleware/error.js` | `api.test.mjs` — every failure path returns `{ error }` | — |
+
+### Day 3 — customer management
+
+| Requirement | Implementation | Automated check | Screen |
+|---|---|---|---|
+| FR-2.1 register a customer | `POST /api/customers` + register dialog | `api.test.mjs` — 201, 400 per field, 409 duplicate e-mail, 403 customer | `day3-04`, `day3-05`, `day3-15` |
+| FR-2.2 view / edit a profile | `GET/PUT /api/customers/:id` + detail & edit screens | `api.test.mjs` — 200, 400, 404, 403 | `day3-06`, `day3-08` |
+| FR-2.3 search + paginated list | `GET /api/customers?search&page&limit` (case-insensitive name/e-mail, phone, newest first) | `api.test.mjs` — search by name/e-mail/phone, empty result, pagination, 400 on an invalid limit/page | `day3-01`, `day3-02`, `day3-03` |
+| FR-2.4 customer history | `GET /api/customers/:id/history` (policies, claims, payments, documents) | `api.test.mjs` — 200, own profile for a customer, 403 for another customer, 404 | `day3-06`, `day3-07` |
+| A customer only sees their own data | `getCustomer` / `customerHistory` compare the token with the record | `api.test.mjs` — 403 for somebody else's profile | `day3-09` |
+
+---
+
+## 3. API test suite
 
 ```bash
 # 1. start the app (needs a migrated + seeded database)
@@ -36,6 +72,11 @@ npm run dev            # Turborepo runs the API and the client together
 # 2. run the suite against it
 npm test               # or: npx turbo run test --filter=insurance-server
 ```
+
+`server/tests/api.test.mjs` covers the HTTP surface, and
+`server/tests/schema.test.mjs` proves that the database really is the one
+`schema.prisma` describes (it parses the schema file and compares it with
+`information_schema`, `pg_indexes` and `pg_enum`).
 
 `server/tests/api.test.mjs` covers:
 
@@ -58,7 +99,7 @@ The suite removes the rows it creates, so it can be run repeatedly.
 
 ---
 
-## 3. Screenshot + UI audit runner
+## 4. Screenshot + UI audit runner
 
 ```bash
 # terminal 1
@@ -98,7 +139,7 @@ The result of the last run is written to `docs/screenshots/ui-audit.json`.
 
 ---
 
-## 4. Sign-in flow tests
+## 5. Sign-in flow tests
 
 ```bash
 # terminal 1
@@ -126,7 +167,7 @@ sign-in, which is exactly the reported symptom.
 
 ---
 
-## 5. Defects found by this run and fixed
+## 6. Defects found by this run and fixed
 
 | # | Area | Problem | Fix |
 |---|------|---------|-----|
@@ -155,7 +196,7 @@ sign-in, which is exactly the reported symptom.
 
 ---
 
-## 6. Test data
+## 7. Test data
 
 `server/tests/reset-demo-data.mjs` restores a clean, reproducible demo state
 (three accounts + five customers with policies, claims, payments and documents):
@@ -175,7 +216,7 @@ accounts).
 
 ---
 
-## 7. Screenshots
+## 8. Screenshots
 
 | File | Screen |
 |------|--------|

@@ -19,7 +19,7 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 | Validation | Zod |
 | Charts | Chart.js |
 | PDF | PDFKit |
-| Testing | node:test (API) · Puppeteer/Chromium (sign-in flow, screenshots + UI audit) |
+| Testing | node:test (API + schema drift) · Puppeteer/Chromium (sign-in flow, screenshots + UI audit) |
 | Hosting | Vercel (client) · Render (server) |
 
 ## Repository Structure
@@ -44,7 +44,7 @@ insurance-management-platform/        # Turborepo root
 │   │   ├── lib/           # prisma client
 │   │   ├── middleware/    # auth (JWT + roles), error handling
 │   │   └── modules/       # auth/, customers/  (routes / controller / schemas)
-│   └── tests/             # api.test.mjs, seed + reset scripts
+│   └── tests/             # api.test.mjs, schema.test.mjs, seed + reset scripts
 └── docs/
     ├── requirements.md    # Requirement analysis (Day 1)
     ├── wireframes.html    # Low-fi UI wireframes (Day 1)
@@ -121,7 +121,7 @@ policies, claims, payments and documents — for manual testing and screenshots.
 ```bash
 npm run dev            # terminal 1 — the app has to be running
 
-npm test               # terminal 2 — 48 API assertions + 6 sign-in scenarios
+npm test               # terminal 2 — 55 API + schema assertions, 6 sign-in scenarios
 npm run screenshots    # terminal 3 — 23 screens + DOM audit → docs/screenshots/
 ```
 

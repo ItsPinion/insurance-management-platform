@@ -33,8 +33,14 @@
         "CHROME_PATH",
         "FONTCONFIG_PATH",
         "HOME",
-        "LD_LIBRARY_PATH"
+        "LD_LIBRARY_PATH",
+        "NODE_OPTIONS"
       ]
+    },
+    "test:schema": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": ["NODE_OPTIONS"]
     },
     "test:login": {
       "cache": false,
