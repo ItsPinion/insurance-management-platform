@@ -1,0 +1,169 @@
+[
+  {
+    "name": "day1-01-wireframes",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day1-01-wireframes.png"
+  },
+  {
+    "name": "day2-01-login",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day2-01-login.png"
+  },
+  {
+    "name": "day2-02-login-wrong-credentials",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "file": "../docs/screenshots/day2-02-login-wrong-credentials.png"
+  },
+  {
+    "name": "day2-03-login-empty-required-fields",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day2-03-login-empty-required-fields.png"
+  },
+  {
+    "name": "day2-04-login-mobile",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day2-04-login-mobile.png"
+  },
+  {
+    "name": "day2-05-create-account-form",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day2-05-create-account-form.png"
+  },
+  {
+    "name": "day2-06-create-account-validation",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "file": "../docs/screenshots/day2-06-create-account-validation.png"
+  },
+  {
+    "name": "day2-07-create-account-success",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day2-07-create-account-success.png"
+  },
+  {
+    "name": "day3-01-customers-list",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-01-customers-list.png"
+  },
+  {
+    "name": "day3-02-customers-search",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-02-customers-search.png"
+  },
+  {
+    "name": "day3-03-customers-search-no-results",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-03-customers-search-no-results.png"
+  },
+  {
+    "name": "day3-04-register-customer-modal",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-04-register-customer-modal.png"
+  },
+  {
+    "name": "day3-05-register-customer-validation",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "file": "../docs/screenshots/day3-05-register-customer-validation.png"
+  },
+  {
+    "name": "day3-06-customer-detail",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-06-customer-detail.png"
+  },
+  {
+    "name": "day3-07-customer-detail-empty-history",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-07-customer-detail-empty-history.png"
+  },
+  {
+    "name": "day3-08-edit-customer-modal",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-08-edit-customer-modal.png"
+  },
+  {
+    "name": "day3-09-customer-own-profile",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-09-customer-own-profile.png"
+  },
+  {
+    "name": "day3-10-customers-list-mobile",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-10-customers-list-mobile.png"
+  },
+  {
+    "name": "day3-11-customer-detail-mobile",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-11-customer-detail-mobile.png"
+  },
+  {
+    "name": "day3-12-register-modal-mobile",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-12-register-modal-mobile.png"
+  },
+  {
+    "name": "day3-13-unknown-route-redirect",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-13-unknown-route-redirect.png"
+  },
+  {
+    "name": "day3-14-agent-view",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-14-agent-view.png"
+  },
+  {
+    "name": "day3-15-customer-created",
+    "issues": [],
+    "consoleErrors": [],
+    "networkErrors": [],
+    "file": "../docs/screenshots/day3-15-customer-created.png"
+  }
+]

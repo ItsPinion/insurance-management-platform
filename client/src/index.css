@@ -2,4 +2,6 @@
 
 body {
   font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  /* the whole UI uses the slate scale — no stray browser-default black */
+  color: var(--color-slate-900);
 }

@@ -4,11 +4,14 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/api.test.mjs",
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "db:seed": "node prisma/seed.js",
+    "db:seed:demo": "node tests/seed-demo-data.mjs",
+    "db:reset": "node tests/reset-demo-data.mjs"
   },
   "keywords": [],
   "author": "",
