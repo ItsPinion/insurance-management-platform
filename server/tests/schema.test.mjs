@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.join(__dirname, '..', 'prisma', 'schema.prisma');
@@ -108,7 +108,7 @@ function parseSchema(source) {
 let prisma;
 
 before(async () => {
-  prisma = new PrismaClient();
+  prisma = createPrismaClient();
   await prisma.$queryRawUnsafe('SELECT 1');
 });
 

@@ -80,6 +80,24 @@ node prisma/seed.js          # demo accounts
 npm run dev                  # API on :5000
 ```
 
+## Connection
+
+The API reaches PostgreSQL through the official `pg` driver adapter
+(`@prisma/adapter-pg`), configured once in `server/src/lib/prisma.js`:
+
+```js
+export const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
+```
+
+A driver adapter is what lets the same code run against the native Prisma
+query engine **and** against the WASM engine that `prisma generate` produces
+when the engine binaries cannot be downloaded — the WASM client refuses to
+start without one. Every script that talks to the database (the seed, the
+demo reset and the test suites) uses the same factory, so they all work in
+either environment.
+
 ## Schema verification
 
 `server/tests/schema.test.mjs` parses `server/prisma/schema.prisma` and

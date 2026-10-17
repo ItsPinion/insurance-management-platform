@@ -57,7 +57,7 @@ insurance-management-platform/        # Turborepo root
 
 | Command | Runs |
 |---|---|
-| `npm run dev` | the API and the client together, in parallel |
+| `npm run dev` | the API and the client together, in parallel (one command, two processes) |
 | `npm run build` | the production build of the client |
 | `npm run lint` | oxlint over the client |
 | `npm test` | the API suite and the browser sign-in suite |
@@ -96,11 +96,17 @@ npm install
 # 2. API setup (needs PostgreSQL)
 cp server/.env.example server/.env    # fill in DATABASE_URL + JWT_SECRET
 npm run prisma:migrate                 # create the schema
+npm run prisma:generate                # generate the Prisma client
 npm run db:seed                        # admin / agent / customer accounts
 
 # 3. run the API and the client together
 npm run dev                            # API :5000 · client :5173 (/api → :5000)
 ```
+
+`npm run dev` starts **both** workspaces in parallel. The API prints
+`✅ API server running` and `✅ Database connected`; the client prints the Vite
+banner. If either cannot start, it says why (missing `DATABASE_URL`, port
+already in use, Prisma client not generated) instead of failing silently.
 
 Prefer one package on its own? Use the workspace commands directly:
 `npm run dev --workspace client` or `npm run dev --workspace insurance-server`.

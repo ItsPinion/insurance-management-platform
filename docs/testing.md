@@ -95,7 +95,9 @@ npm test               # or: npx turbo run test --filter=insurance-server
 | `GET /api/customers/:id/history` | 200 (policies + claims + payments + documents), 200 for the owning customer, 403 for another customer, 404 |
 | unknown route | 404 JSON error |
 
-The suite removes the rows it creates, so it can be run repeatedly.
+The suite removes the rows it creates (through the same driver-adapter
+client the API uses), so the database is left exactly as it was found and the
+suite can be run repeatedly without polluting the demo data.
 
 ---
 

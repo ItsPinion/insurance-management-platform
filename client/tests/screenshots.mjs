@@ -723,7 +723,11 @@ async function main() {
   let failures = 0;
 
   for (const scenario of scenarios) {
-    const page = await browser.newPage();
+    // Every scenario gets its own browser context: no session, cookie or
+    // cache leaks from one screen into the next one, so each screen is
+    // captured from a clean start.
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
     const consoleErrors = [];
     const networkErrors = [];
     page.on('console', (m) => {
@@ -761,7 +765,7 @@ async function main() {
       console.log(`✖ ${scenario.name.padEnd(34)} ${err.message}`);
     } finally {
       report.push(entry);
-      await page.close();
+      await context.close();
     }
   }
 

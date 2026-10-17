@@ -5,10 +5,10 @@
  * Usage:  node tests/seed-demo-data.mjs
  */
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma.js';
 import { DEMO_CUSTOMERS } from './fixtures/demo-data.mjs';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 for (const d of DEMO_CUSTOMERS) {
   const customer = await prisma.customer.upsert({

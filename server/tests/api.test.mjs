@@ -86,8 +86,8 @@ after(async () => {
   // if the database is not reachable from the test process the demo data can
   // be restored with `npm run db:reset`.
   try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    const { createPrismaClient } = await import('../src/lib/prisma.js');
+    const prisma = createPrismaClient();
     await prisma.user.deleteMany({
       where: {
         OR: [

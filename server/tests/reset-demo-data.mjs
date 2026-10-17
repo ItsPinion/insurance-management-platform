@@ -9,10 +9,10 @@
  */
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma.js';
 import { BASE_USERS, DEMO_CUSTOMERS } from './fixtures/demo-data.mjs';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 // 1. wipe everything that the API/screenshot tests produced
 await prisma.document.deleteMany();

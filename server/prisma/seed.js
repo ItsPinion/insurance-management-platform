@@ -2,9 +2,9 @@
 // Run: node prisma/seed.js
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '../src/lib/prisma.js';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const users = [
   { name: 'System Admin', email: 'admin@insure.test', password: 'Admin@123', role: 'ADMIN' },
