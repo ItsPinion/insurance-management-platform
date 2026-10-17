@@ -67,21 +67,45 @@
         "OUT_DIR"
       ]
     },
-    "prisma:generate": {
+    "test:parity": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": ["API_BASE_URL", "DATABASE_URL", "NODE_OPTIONS"]
+    },
+    "db:generate": {
       "cache": false,
-      "outputs": []
+      "outputs": [],
+      "env": ["DATABASE_URL"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "outputs": [],
+      "env": ["DATABASE_URL"]
+    },
+    "db:push": {
+      "cache": false,
+      "outputs": [],
+      "env": ["DATABASE_URL"]
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true,
+      "env": ["DATABASE_URL"]
     },
     "db:seed": {
       "cache": false,
-      "outputs": []
+      "outputs": [],
+      "env": ["DATABASE_URL"]
     },
     "db:seed:demo": {
       "cache": false,
-      "outputs": []
+      "outputs": [],
+      "env": ["DATABASE_URL"]
     },
     "db:reset": {
       "cache": false,
-      "outputs": []
+      "outputs": [],
+      "env": ["DATABASE_URL"]
     }
   }
 }

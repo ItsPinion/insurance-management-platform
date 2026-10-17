@@ -18,9 +18,6 @@ build/
 server/uploads/*
 !server/uploads/.gitkeep
 
-# Prisma
-server/prisma/migrations/dev/
-
 # Logs & OS
 *.log
 .DS_Store

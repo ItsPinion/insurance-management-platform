@@ -12,7 +12,8 @@ Everything below is repeatable from a clean checkout — no manual steps.
 | Layer | Tool | Location | Result |
 |-------|------|----------|--------|
 | API endpoints (48 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 48/48 pass |
-| Database schema (7 checks) | `node:test` + Prisma | `server/tests/schema.test.mjs` | 7/7 pass |
+| Database schema (7 checks) | `node:test` + Drizzle schema metadata | `server/tests/schema.test.mjs` | 7/7 pass |
+| Response parity vs the Prisma implementation (31 responses) | `node:test` + `fetch` | `server/tests/orm-parity.test.mjs` | 30/30 tests, 31/31 responses identical |
 | Sign-in flow (6 scenarios) | Puppeteer + Chromium | `client/tests/login-flow.mjs` | 6/6 pass |
 | UI screens (23 screens) | Puppeteer + Chromium | `client/tests/screenshots.mjs` | 23/23 captured, 0 UI issues |
 | Static analysis | oxlint | `client/` | 0 errors |
@@ -43,7 +44,7 @@ Every requirement of the first three days, and where it is proved.
 
 | Requirement | Implementation | Automated check | Screen |
 |---|---|---|---|
-| Prisma schema (7 models, 6 enums, FKs, indexes) | `server/prisma/schema.prisma` + `server/prisma/migrations/20261017130533_init` | `server/tests/schema.test.mjs` — 7 checks: tables, columns (type / nullability / default), enums, unique constraints, foreign keys, indexes, migration history | — |
+| Database schema (7 tables, 6 enums, FKs, indexes) | `server/src/db/schema.js` (Drizzle) + `server/drizzle/0000_init.sql` | `server/tests/schema.test.mjs` — 7 checks: tables, columns (type / precision / nullability / default), primary key, enums, indexes + unique indexes, foreign keys (incl. `ON DELETE` / `ON UPDATE`), migration journal vs `drizzle.__drizzle_migrations` | — |
 | ERD & design decisions | `docs/database.md` | matches the live database (same drift check) | — |
 | FR-1.1 register / login (bcrypt) | `POST /api/auth/register`, `POST /api/auth/login` | `api.test.mjs` — 201, 200, 409 duplicate, 400 validation, 401 wrong password | `day2-01`, `day2-02`, `day2-05`, `day2-06`, `day2-07` |
 | FR-1.2 JWT + `Authorization: Bearer` | `signToken()` in the auth controller, `requireAuth` middleware | `api.test.mjs` — 401 without a token, 401 with a tampered token | — |
@@ -75,8 +76,10 @@ npm test               # or: npx turbo run test --filter=insurance-server
 
 `server/tests/api.test.mjs` covers the HTTP surface, and
 `server/tests/schema.test.mjs` proves that the database really is the one
-`schema.prisma` describes (it parses the schema file and compares it with
-`information_schema`, `pg_indexes` and `pg_enum`).
+`src/db/schema.js` describes: it reads the Drizzle table objects
+(`getTableConfig`) and compares them with `information_schema`, `pg_indexes`
+and `pg_enum`, and finally re-hashes the files in `server/drizzle/` against
+`drizzle.__drizzle_migrations`.
 
 `server/tests/api.test.mjs` covers:
 
@@ -95,9 +98,10 @@ npm test               # or: npx turbo run test --filter=insurance-server
 | `GET /api/customers/:id/history` | 200 (policies + claims + payments + documents), 200 for the owning customer, 403 for another customer, 404 |
 | unknown route | 404 JSON error |
 
-The suite removes the rows it creates (through the same driver-adapter
-client the API uses), so the database is left exactly as it was found and the
-suite can be run repeatedly without polluting the demo data.
+The suite removes the rows it creates (through the same `pg` pool the API
+uses), so the database is left exactly as it was found and the suite can be run
+repeatedly without polluting the demo data. The demo state itself is restored
+with `npm run db:reset`.
 
 ---
 
@@ -198,7 +202,62 @@ sign-in, which is exactly the reported symptom.
 
 ---
 
-## 7. Test data
+## 7. ORM swap verification (Prisma → Drizzle)
+
+The server was moved from Prisma to **Drizzle ORM** without changing a single
+response. That claim is checked, not assumed:
+
+* `server/tests/fixtures/api-baseline-prisma.json` holds the **31 responses**
+  that the Prisma implementation produced — every endpoint, every role, every
+  error path (401 / 403 / 400 with field details / 409 / 404), captured from
+  the running server before the swap.
+* `server/tests/fixtures/api-cases.mjs` is the single list of those requests,
+  shared by both tools below, so they cannot drift apart.
+* `server/tests/orm-parity.test.mjs` replays exactly those requests against the
+  current (Drizzle) server and compares the answers, one test per response.
+* `node server/tests/capture-responses.mjs <file>` records a new baseline the
+  same way — it refuses to overwrite a checked-in fixture on purpose.
+
+| Compared | How |
+|---|---|
+| HTTP status | exact |
+| JSON **key order** | exact (the responses are compared as serialised JSON) |
+| value types | exact — including `Decimal` fields, which both ORMs return as strings (`"24500"`) |
+| business dates | exact — `dob`, `startDate`, `endDate`, `dueDate`, `submissionDate` must come back as the same instants |
+| error wording, validation `details`, pagination shape | exact |
+| surrogate ids, JWTs, `createdAt`/`updatedAt` of the capture run | masked — they cannot be equal between two runs by definition |
+| list endpoints | the rows are aligned by e-mail and every row of the current run has to match its counterpart from the baseline |
+
+```bash
+npm run db:reset         # the demo data the baseline was captured against
+npm run dev              # API + client
+npm run test:parity      # just this check — it also runs as part of npm test
+```
+
+Result of the last run: **31/31 responses identical** (`0` differences over
+status, key order, types, dates, decimals and error text). The same run also
+re-verifies the schema: the Drizzle schema describes the exact same database as
+the previous `schema.prisma` did — tables, columns, types, defaults, enums,
+indexes, foreign keys and `ON DELETE` / `ON UPDATE` rules (`npm run db:push`
+against the untouched Prisma database reported **no changes**, which is how the
+swap was verified to be schema-neutral).
+
+The suite is also self-checking: temporarily renaming one field in a
+controller makes 4 of the 30 tests fail, so the comparison cannot pass by
+accident.
+
+The same suite was run against a **brand-new database**
+(`createdb insurance_fresh` → `npm run db:migrate` → `npm run db:seed` →
+`npm run db:seed:demo`, API on another port) and everything passed there too —
+85/85 — which is the proof that the Drizzle migrations alone are enough to
+build the whole schema from scratch.
+
+Totals for `npm test`: **85 server assertions** (48 API + 7 schema drift +
+30 parity) and **6 browser sign-in scenarios**.
+
+---
+
+## 8. Test data
 
 `server/tests/reset-demo-data.mjs` restores a clean, reproducible demo state
 (three accounts + five customers with policies, claims, payments and documents):
@@ -218,7 +277,7 @@ accounts).
 
 ---
 
-## 8. Screenshots
+## 9. Screenshots
 
 | File | Screen |
 |------|--------|

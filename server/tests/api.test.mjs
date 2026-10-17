@@ -86,29 +86,34 @@ after(async () => {
   // if the database is not reachable from the test process the demo data can
   // be restored with `npm run db:reset`.
   try {
-    const { createPrismaClient } = await import('../src/lib/prisma.js');
-    const prisma = createPrismaClient();
-    await prisma.user.deleteMany({
-      where: {
-        OR: [
-          { email: { contains: 'test.user.' } },
-          { email: { contains: 'register.' } },
-          { email: { contains: 'new.agent.' } },
-          { email: { contains: 'bad.role.' } },
-          { email: { contains: 'sneaky' } },
-          { email: { contains: 'nonumber.' } },
-        ],
-      },
-    });
-    await prisma.customer.deleteMany({
-      where: {
-        OR: [
-          { email: { contains: 'test.customer.' } },
-          { email: { contains: 'created.' } },
-        ],
-      },
-    });
-    await prisma.$disconnect();
+    const [{ db, pool }, { customers, users }, { ilike, or }] = await Promise.all([
+      import('../src/db/index.js'),
+      import('../src/db/schema.js'),
+      import('drizzle-orm'),
+    ]);
+    await db
+      .delete(users)
+      .where(
+        or(
+          ilike(users.email, 'test.user.%'),
+          ilike(users.email, 'register.%'),
+          ilike(users.email, 'new.agent.%'),
+          ilike(users.email, 'bad.role.%'),
+          ilike(users.email, 'sneaky%'),
+          ilike(users.email, 'nonumber.%'),
+          ilike(users.email, 'baseline.%'),
+        ),
+      );
+    await db
+      .delete(customers)
+      .where(
+        or(
+          ilike(customers.email, 'test.customer.%'),
+          ilike(customers.email, 'created.%'),
+          ilike(customers.email, 'baseline.customer.%'),
+        ),
+      );
+    await pool.end();
   } catch {
     /* no direct database access from the test process — nothing to clean up */
   }

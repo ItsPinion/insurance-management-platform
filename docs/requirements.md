@@ -161,7 +161,10 @@ Key relationships:
 - Customer 1 ──* Documents (documents optionally linked to a claim)
 - User (role=CUSTOMER) 1 ──1 Customer
 
-> Detailed Prisma schema is a **Day 2** deliverable.
+> Detailed database schema is a **Day 2** deliverable. It was first written with
+> Prisma; the implementation now uses **Drizzle ORM** (`server/src/db/schema.js`
+> + `server/drizzle/`) — the same tables, columns, indexes and constraints, see
+> [docs/database.md](database.md) §"Connection" for why.
 
 ---
 
@@ -184,7 +187,7 @@ GET    /api/reports/summary       GET    /api/reports/monthly
 
 ## 9. Tech Stack (confirmed)
 
-React.js + Tailwind CSS · Node.js + Express · PostgreSQL + Prisma · JWT + bcrypt ·
+React.js + Tailwind CSS · Node.js + Express · PostgreSQL + Drizzle ORM · JWT + bcrypt ·
 Multer · Zod · Chart.js · PDFKit · Git/GitHub · Render (API) + Vercel (frontend)
 
 ---

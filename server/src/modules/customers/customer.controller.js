@@ -1,4 +1,20 @@
-import { prisma } from '../../lib/prisma.js';
+import {
+  count,
+  countDistinct,
+  desc,
+  eq,
+  ilike,
+  like,
+  or,
+} from 'drizzle-orm';
+import { db } from '../../db/index.js';
+import {
+  claims,
+  customers,
+  documents,
+  policies,
+  premiumPayments,
+} from '../../db/schema.js';
 import { ApiError } from '../../middleware/error.js';
 import {
   createCustomerSchema,
@@ -6,33 +22,60 @@ import {
   listQuerySchema,
 } from './customer.schemas.js';
 
+// the columns the list and the detail screen share
+const customerColumns = {
+  id: customers.id,
+  name: customers.name,
+  dob: customers.dob,
+  phone: customers.phone,
+  address: customers.address,
+  email: customers.email,
+  createdAt: customers.createdAt,
+  updatedAt: customers.updatedAt,
+  userId: customers.userId,
+};
+
+// the API returns the related record counts the way the client expects them
+function toCustomer(row) {
+  const { policyCount, documentCount, ...customer } = row;
+  return { ...customer, _count: { policies: policyCount, documents: documentCount } };
+}
+
 // GET /api/customers — FR-2.3 search + pagination (ADMIN, AGENT)
 export async function listCustomers(req, res) {
   const { search, page, limit } = listQuerySchema.parse(req.query);
 
   const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-        ],
-      }
-    : {};
+    ? or(
+        ilike(customers.name, `%${search}%`),
+        ilike(customers.email, `%${search}%`),
+        like(customers.phone, `%${search}%`),
+      )
+    : undefined;
 
-  const [total, customers] = await Promise.all([
-    prisma.customer.count({ where }),
-    prisma.customer.findMany({
-      where,
-      include: { _count: { select: { policies: true, documents: true } } },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
+  // the count and the page are independent, so they run in parallel
+  const [[{ total }], rows] = await Promise.all([
+    db.select({ total: count() }).from(customers).where(where),
+    db
+      .select({
+        ...customerColumns,
+        policyCount: countDistinct(policies.id),
+        documentCount: countDistinct(documents.id),
+      })
+      .from(customers)
+      .leftJoin(policies, eq(policies.customerId, customers.id))
+      .leftJoin(documents, eq(documents.customerId, customers.id))
+      .where(where)
+      .groupBy(customers.id)
+      // createdAt desc, with the id as a tiebreaker so two rows written in the
+      // same millisecond still produce a stable page
+      .orderBy(desc(customers.createdAt), desc(customers.id))
+      .limit(limit)
+      .offset((page - 1) * limit),
   ]);
 
   res.json({
-    customers,
+    customers: rows.map(toCustomer),
     pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
   });
 }
@@ -40,16 +83,21 @@ export async function listCustomers(req, res) {
 // POST /api/customers — FR-2.1 (ADMIN, AGENT)
 export async function createCustomer(req, res) {
   const data = createCustomerSchema.parse(req.body);
-  const customer = await prisma.customer.create({
-    data: { ...data, email: data.email.toLowerCase() },
-  });
+  const now = new Date();
+  const [customer] = await db
+    .insert(customers)
+    .values({ ...data, email: data.email.toLowerCase(), createdAt: now, updatedAt: now })
+    .returning();
   res.status(201).json({ customer });
 }
 
 // Customers may only view their own profile
 async function assertCanAccess(reqUser, customerId) {
   if (reqUser.role !== 'CUSTOMER') return;
-  const own = await prisma.customer.findUnique({ where: { userId: reqUser.id } });
+  const [own] = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.userId, reqUser.id));
   if (!own || own.id !== customerId) {
     throw new ApiError(403, 'You can only view your own profile');
   }
@@ -60,12 +108,20 @@ export async function getCustomer(req, res) {
   const id = Number(req.params.id);
   await assertCanAccess(req.user, id);
 
-  const customer = await prisma.customer.findUnique({
-    where: { id },
-    include: { _count: { select: { policies: true, documents: true } } },
-  });
-  if (!customer) throw new ApiError(404, 'Customer not found');
-  res.json({ customer });
+  const [row] = await db
+    .select({
+      ...customerColumns,
+      policyCount: countDistinct(policies.id),
+      documentCount: countDistinct(documents.id),
+    })
+    .from(customers)
+    .leftJoin(policies, eq(policies.customerId, customers.id))
+    .leftJoin(documents, eq(documents.customerId, customers.id))
+    .where(eq(customers.id, id))
+    .groupBy(customers.id);
+
+  if (!row) throw new ApiError(404, 'Customer not found');
+  res.json({ customer: toCustomer(row) });
 }
 
 // PUT /api/customers/:id — FR-2.2 (ADMIN, AGENT)
@@ -74,7 +130,13 @@ export async function updateCustomer(req, res) {
   const data = updateCustomerSchema.parse(req.body);
   if (data.email) data.email = data.email.toLowerCase();
 
-  const customer = await prisma.customer.update({ where: { id }, data });
+  const [customer] = await db
+    .update(customers)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(customers.id, id))
+    .returning();
+
+  if (!customer) throw new ApiError(404, 'Record not found');
   res.json({ customer });
 }
 
@@ -83,17 +145,17 @@ export async function customerHistory(req, res) {
   const id = Number(req.params.id);
   await assertCanAccess(req.user, id);
 
-  const customer = await prisma.customer.findUnique({
-    where: { id },
-    include: {
+  const customer = await db.query.customers.findFirst({
+    where: eq(customers.id, id),
+    with: {
       policies: {
-        orderBy: { createdAt: 'desc' },
-        include: {
-          claims: { orderBy: { submissionDate: 'desc' } },
-          payments: { orderBy: { dueDate: 'desc' } },
+        orderBy: [desc(policies.createdAt), desc(policies.id)],
+        with: {
+          claims: { orderBy: [desc(claims.submissionDate), desc(claims.id)] },
+          payments: { orderBy: [desc(premiumPayments.dueDate), desc(premiumPayments.id)] },
         },
       },
-      documents: { orderBy: { uploadedAt: 'desc' } },
+      documents: { orderBy: [desc(documents.uploadedAt), desc(documents.id)] },
     },
   });
   if (!customer) throw new ApiError(404, 'Customer not found');

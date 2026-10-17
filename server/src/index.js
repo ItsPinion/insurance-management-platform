@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
-import { prisma } from './lib/prisma.js';
+import { pool } from './db/index.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -23,8 +23,8 @@ server.on('error', (err) => {
 
 // A database that is not up yet must be obvious right away instead of
 // surfacing later as a failed request.
-prisma
-  .$queryRaw`SELECT 1`
+pool
+  .query('SELECT 1')
   .then(() => console.log('✅ Database connected'))
   .catch((err) => {
     const reason = String(err.message).split('\n')[0];

@@ -2,7 +2,7 @@
   "name": "insurance-management-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "Insurance Management Platform — Turborepo monorepo (React client + Express API)",
+  "description": "Insurance Management Platform \u2014 Turborepo monorepo (React client + Express API)",
   "packageManager": "npm@10.9.8",
   "engines": {
     "node": ">=20.0.0"
@@ -19,12 +19,15 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:login": "turbo run test:login",
+    "test:parity": "npm run test:parity --workspace insurance-server",
     "screenshots": "turbo run screenshots",
+    "db:generate": "npm run db:generate --workspace insurance-server",
+    "db:migrate": "npm run db:migrate --workspace insurance-server",
+    "db:push": "npm run db:push --workspace insurance-server",
+    "db:studio": "npm run db:studio --workspace insurance-server",
     "db:seed": "npm run db:seed --workspace insurance-server",
     "db:seed:demo": "npm run db:seed:demo --workspace insurance-server",
-    "db:reset": "npm run db:reset --workspace insurance-server",
-    "prisma:generate": "npm run prisma:generate --workspace insurance-server",
-    "prisma:migrate": "npm run prisma:migrate --workspace insurance-server"
+    "db:reset": "npm run db:reset --workspace insurance-server"
   },
   "devDependencies": {
     "turbo": "^2.11.9"

@@ -1,0 +1,684 @@
+{
+  "00 GET /api/health [anon]": {
+    "status": 200,
+    "data": {
+      "status": "ok"
+    }
+  },
+  "01 POST /api/auth/login [anon]": {
+    "status": 200,
+    "data": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6OTQsInJvbGUiOiJBRE1JTiIsIm5hbWUiOiJTeXN0ZW0gQWRtaW4iLCJpYXQiOjE3OTIyNTE5NjUsImV4cCI6MTc5MjMzODM2NX0.FaSchO8zBCxxBMEm0jd9yP9-vBf0GxWbZOS-X7nyTIg",
+      "user": {
+        "id": 94,
+        "name": "System Admin",
+        "email": "admin@insure.test",
+        "role": "ADMIN",
+        "createdAt": "2026-10-17T15:34:31.553Z",
+        "updatedAt": "2026-10-17T15:34:31.553Z"
+      }
+    }
+  },
+  "02 POST /api/auth/login [anon]": {
+    "status": 401,
+    "data": {
+      "error": "Invalid email or password"
+    }
+  },
+  "03 POST /api/auth/login [anon]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "email",
+          "message": "Invalid email address"
+        }
+      ]
+    }
+  },
+  "04 GET /api/auth/me [admin]": {
+    "status": 200,
+    "data": {
+      "user": {
+        "id": 94,
+        "name": "System Admin",
+        "email": "admin@insure.test",
+        "role": "ADMIN",
+        "createdAt": "2026-10-17T15:34:31.553Z",
+        "updatedAt": "2026-10-17T15:34:31.553Z",
+        "customer": null
+      }
+    }
+  },
+  "05 GET /api/auth/me [customer]": {
+    "status": 200,
+    "data": {
+      "user": {
+        "id": 96,
+        "name": "Asha Verma",
+        "email": "asha@insure.test",
+        "role": "CUSTOMER",
+        "createdAt": "2026-10-17T15:34:31.753Z",
+        "updatedAt": "2026-10-17T15:34:31.753Z",
+        "customer": {
+          "id": 117
+        }
+      }
+    }
+  },
+  "06 GET /api/auth/me [anon]": {
+    "status": 401,
+    "data": {
+      "error": "Authentication required"
+    }
+  },
+  "07 GET /api/auth/me [badtoken]": {
+    "status": 401,
+    "data": {
+      "error": "Invalid or expired token"
+    }
+  },
+  "08 GET /api/auth/users [admin]": {
+    "status": 200,
+    "data": {
+      "users": [
+        {
+          "id": 100,
+          "name": "Baseline User",
+          "email": "baseline.1792251953367@insure.test",
+          "role": "CUSTOMER",
+          "createdAt": "2026-10-17T15:45:53.936Z"
+        },
+        {
+          "id": 99,
+          "name": "Baseline User",
+          "email": "baseline.1792251947635@insure.test",
+          "role": "CUSTOMER",
+          "createdAt": "2026-10-17T15:45:48.433Z"
+        },
+        {
+          "id": 98,
+          "name": "Ravi Kumar",
+          "email": "register.1792251638812@insure.test",
+          "role": "CUSTOMER",
+          "createdAt": "2026-10-17T15:40:38.915Z"
+        },
+        {
+          "id": 97,
+          "name": "Ravi Kumar",
+          "email": "register.1792251296784@insure.test",
+          "role": "CUSTOMER",
+          "createdAt": "2026-10-17T15:34:56.893Z"
+        },
+        {
+          "id": 96,
+          "name": "Asha Verma",
+          "email": "asha@insure.test",
+          "role": "CUSTOMER",
+          "createdAt": "2026-10-17T15:34:31.753Z"
+        },
+        {
+          "id": 95,
+          "name": "Agent Smith",
+          "email": "agent@insure.test",
+          "role": "AGENT",
+          "createdAt": "2026-10-17T15:34:31.658Z"
+        },
+        {
+          "id": 94,
+          "name": "System Admin",
+          "email": "admin@insure.test",
+          "role": "ADMIN",
+          "createdAt": "2026-10-17T15:34:31.553Z"
+        }
+      ]
+    }
+  },
+  "09 GET /api/auth/users [agent]": {
+    "status": 403,
+    "data": {
+      "error": "You do not have permission to perform this action"
+    }
+  },
+  "10 GET /api/customers [admin]": {
+    "status": 200,
+    "data": {
+      "customers": [
+        {
+          "id": 125,
+          "name": "Baseline Customer",
+          "dob": "1990-05-20T00:00:00.000Z",
+          "phone": "9812345679",
+          "address": "42 Baseline Street, Pune",
+          "email": "baseline.customer.1792251953367@insure.test",
+          "createdAt": "2026-10-17T15:45:54.131Z",
+          "updatedAt": "2026-10-17T15:45:54.136Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        },
+        {
+          "id": 124,
+          "name": "Baseline Customer",
+          "dob": "1990-05-20T00:00:00.000Z",
+          "phone": "9812345679",
+          "address": "42 Baseline Street, Pune",
+          "email": "baseline.customer.1792251947635@insure.test",
+          "createdAt": "2026-10-17T15:45:48.444Z",
+          "updatedAt": "2026-10-17T15:45:48.450Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        },
+        {
+          "id": 123,
+          "name": "Screenshot Customer",
+          "dob": "1992-03-04T00:00:00.000Z",
+          "phone": "9812340099",
+          "address": "12 Marine Drive, Goa",
+          "email": "screenshot.1792251714428@insure.test",
+          "createdAt": "2026-10-17T15:41:54.460Z",
+          "updatedAt": "2026-10-17T15:41:54.460Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        },
+        {
+          "id": 122,
+          "name": "Screenshot Customer",
+          "dob": "1992-03-04T00:00:00.000Z",
+          "phone": "9812340099",
+          "address": "12 Marine Drive, Goa",
+          "email": "screenshot.1792251490227@insure.test",
+          "createdAt": "2026-10-17T15:38:10.255Z",
+          "updatedAt": "2026-10-17T15:38:10.255Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        },
+        {
+          "id": 121,
+          "name": "Ravi Deshmukh",
+          "dob": "1979-01-30T00:00:00.000Z",
+          "phone": "9004506677",
+          "address": "58 FC Road, Pune",
+          "email": "ravi@insure.test",
+          "createdAt": "2026-10-17T15:34:31.833Z",
+          "updatedAt": "2026-10-17T15:34:31.833Z",
+          "userId": null,
+          "_count": {
+            "policies": 1,
+            "documents": 0
+          }
+        },
+        {
+          "id": 120,
+          "name": "Meera Iyer",
+          "dob": "1993-07-25T00:00:00.000Z",
+          "phone": "9111111111",
+          "address": "9 Residency Road, Chennai",
+          "email": "meera@insure.test",
+          "createdAt": "2026-10-17T15:34:31.830Z",
+          "updatedAt": "2026-10-17T15:34:31.830Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        },
+        {
+          "id": 119,
+          "name": "Rahul Singh",
+          "dob": "1985-11-02T00:00:00.000Z",
+          "phone": "9771234114",
+          "address": "221 Bishop Street, Kolkata",
+          "email": "rahul@insure.test",
+          "createdAt": "2026-10-17T15:34:31.814Z",
+          "updatedAt": "2026-10-17T15:34:31.814Z",
+          "userId": null,
+          "_count": {
+            "policies": 1,
+            "documents": 1
+          }
+        },
+        {
+          "id": 118,
+          "name": "Nita Rao",
+          "dob": "1990-04-12T00:00:00.000Z",
+          "phone": "9822001144",
+          "address": "14 Turner Road, Bengaluru",
+          "email": "nita@insure.test",
+          "createdAt": "2026-10-17T15:34:31.768Z",
+          "updatedAt": "2026-10-17T15:34:31.768Z",
+          "userId": null,
+          "_count": {
+            "policies": 2,
+            "documents": 2
+          }
+        },
+        {
+          "id": 117,
+          "name": "Asha Verma",
+          "dob": "1992-04-18T00:00:00.000Z",
+          "phone": "9812345210",
+          "address": "12 Lake Road, Pune",
+          "email": "asha@insure.test",
+          "createdAt": "2026-10-17T15:34:31.764Z",
+          "updatedAt": "2026-10-17T15:34:31.764Z",
+          "userId": 96,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 9,
+        "totalPages": 1
+      }
+    }
+  },
+  "11 GET /api/customers?search=ra&page=1&limit=2 [agent]": {
+    "status": 200,
+    "data": {
+      "customers": [
+        {
+          "id": 121,
+          "name": "Ravi Deshmukh",
+          "dob": "1979-01-30T00:00:00.000Z",
+          "phone": "9004506677",
+          "address": "58 FC Road, Pune",
+          "email": "ravi@insure.test",
+          "createdAt": "2026-10-17T15:34:31.833Z",
+          "updatedAt": "2026-10-17T15:34:31.833Z",
+          "userId": null,
+          "_count": {
+            "policies": 1,
+            "documents": 0
+          }
+        },
+        {
+          "id": 120,
+          "name": "Meera Iyer",
+          "dob": "1993-07-25T00:00:00.000Z",
+          "phone": "9111111111",
+          "address": "9 Residency Road, Chennai",
+          "email": "meera@insure.test",
+          "createdAt": "2026-10-17T15:34:31.830Z",
+          "updatedAt": "2026-10-17T15:34:31.830Z",
+          "userId": null,
+          "_count": {
+            "policies": 0,
+            "documents": 0
+          }
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 2,
+        "total": 4,
+        "totalPages": 2
+      }
+    }
+  },
+  "12 GET /api/customers?search=zzzz [admin]": {
+    "status": 200,
+    "data": {
+      "customers": [],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 0,
+        "totalPages": 1
+      }
+    }
+  },
+  "13 GET /api/customers?page=0 [admin]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "page",
+          "message": "Too small: expected number to be >=1"
+        }
+      ]
+    }
+  },
+  "14 GET /api/customers?limit=999 [admin]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "limit",
+          "message": "Too big: expected number to be <=100"
+        }
+      ]
+    }
+  },
+  "15 GET /api/customers [customer]": {
+    "status": 403,
+    "data": {
+      "error": "You do not have permission to perform this action"
+    }
+  },
+  "16 GET /api/customers [anon]": {
+    "status": 401,
+    "data": {
+      "error": "Authentication required"
+    }
+  },
+  "17 GET /api/customers/118 [admin]": {
+    "status": 200,
+    "data": {
+      "customer": {
+        "id": 118,
+        "name": "Nita Rao",
+        "dob": "1990-04-12T00:00:00.000Z",
+        "phone": "9822001144",
+        "address": "14 Turner Road, Bengaluru",
+        "email": "nita@insure.test",
+        "createdAt": "2026-10-17T15:34:31.768Z",
+        "updatedAt": "2026-10-17T15:34:31.768Z",
+        "userId": null,
+        "_count": {
+          "policies": 2,
+          "documents": 2
+        }
+      }
+    }
+  },
+  "18 GET /api/customers/118 [customer]": {
+    "status": 403,
+    "data": {
+      "error": "You can only view your own profile"
+    }
+  },
+  "19 GET /api/customers/117 [customer]": {
+    "status": 200,
+    "data": {
+      "customer": {
+        "id": 117,
+        "name": "Asha Verma",
+        "dob": "1992-04-18T00:00:00.000Z",
+        "phone": "9812345210",
+        "address": "12 Lake Road, Pune",
+        "email": "asha@insure.test",
+        "createdAt": "2026-10-17T15:34:31.764Z",
+        "updatedAt": "2026-10-17T15:34:31.764Z",
+        "userId": 96,
+        "_count": {
+          "policies": 0,
+          "documents": 0
+        }
+      }
+    }
+  },
+  "20 GET /api/customers/999999 [admin]": {
+    "status": 404,
+    "data": {
+      "error": "Customer not found"
+    }
+  },
+  "21 GET /api/customers/118/history [admin]": {
+    "status": 200,
+    "data": {
+      "customer": {
+        "id": 118,
+        "name": "Nita Rao",
+        "dob": "1990-04-12T00:00:00.000Z",
+        "phone": "9822001144",
+        "address": "14 Turner Road, Bengaluru",
+        "email": "nita@insure.test",
+        "createdAt": "2026-10-17T15:34:31.768Z",
+        "updatedAt": "2026-10-17T15:34:31.768Z",
+        "userId": null,
+        "policies": [
+          {
+            "id": 54,
+            "policyNumber": "VH-2023-0042",
+            "policyType": "VEHICLE",
+            "premiumAmount": "24500",
+            "startDate": "2023-06-01T00:00:00.000Z",
+            "endDate": "2025-05-31T00:00:00.000Z",
+            "status": "EXPIRED",
+            "createdAt": "2026-10-17T15:34:31.783Z",
+            "updatedAt": "2026-10-17T15:34:31.783Z",
+            "customerId": 118,
+            "claims": [
+              {
+                "id": 28,
+                "claimNumber": "CLM-2024-0031",
+                "claimAmount": "34000",
+                "reason": "Accidental bumper and headlight damage",
+                "status": "APPROVED",
+                "submissionDate": "2024-11-02T00:00:00.000Z",
+                "reviewRemarks": "Approved after third-party inspection",
+                "reviewedAt": "2024-11-09T00:00:00.000Z",
+                "policyId": 54,
+                "reviewerId": null
+              }
+            ],
+            "payments": [
+              {
+                "id": 68,
+                "amount": "24500",
+                "dueDate": "2024-06-01T00:00:00.000Z",
+                "paymentDate": "2024-05-28T00:00:00.000Z",
+                "paymentStatus": "PAID",
+                "createdAt": "2026-10-17T15:34:31.788Z",
+                "policyId": 54
+              }
+            ]
+          },
+          {
+            "id": 53,
+            "policyNumber": "HLT-2024-0001",
+            "policyType": "HEALTH",
+            "premiumAmount": "18400",
+            "startDate": "2024-01-15T00:00:00.000Z",
+            "endDate": "2027-01-14T00:00:00.000Z",
+            "status": "ACTIVE",
+            "createdAt": "2026-10-17T15:34:31.770Z",
+            "updatedAt": "2026-10-17T15:34:31.770Z",
+            "customerId": 118,
+            "claims": [
+              {
+                "id": 27,
+                "claimNumber": "CLM-2025-0007",
+                "claimAmount": "12500",
+                "reason": "Hospitalisation for dengue treatment",
+                "status": "UNDER_REVIEW",
+                "submissionDate": "2025-09-21T00:00:00.000Z",
+                "reviewRemarks": "Awaiting hospital discharge summary",
+                "reviewedAt": null,
+                "policyId": 53,
+                "reviewerId": null
+              }
+            ],
+            "payments": [
+              {
+                "id": 67,
+                "amount": "18400",
+                "dueDate": "2026-01-15T00:00:00.000Z",
+                "paymentDate": null,
+                "paymentStatus": "PENDING",
+                "createdAt": "2026-10-17T15:34:31.781Z",
+                "policyId": 53
+              },
+              {
+                "id": 66,
+                "amount": "18400",
+                "dueDate": "2025-01-15T00:00:00.000Z",
+                "paymentDate": "2025-01-11T00:00:00.000Z",
+                "paymentStatus": "PAID",
+                "createdAt": "2026-10-17T15:34:31.778Z",
+                "policyId": 53
+              }
+            ]
+          }
+        ],
+        "documents": [
+          {
+            "id": 41,
+            "fileName": "health-policy-2024.pdf",
+            "filePath": "uploads/seed/health-policy-2024.pdf",
+            "mimeType": "application/pdf",
+            "sizeBytes": 92410,
+            "docType": "POLICY",
+            "uploadedAt": "2026-10-17T15:34:31.795Z",
+            "customerId": 118,
+            "claimId": null
+          },
+          {
+            "id": 40,
+            "fileName": "aadhaar-card.pdf",
+            "filePath": "uploads/seed/aadhaar-card.pdf",
+            "mimeType": "application/pdf",
+            "sizeBytes": 182300,
+            "docType": "IDENTITY",
+            "uploadedAt": "2026-10-17T15:34:31.792Z",
+            "customerId": 118,
+            "claimId": null
+          }
+        ]
+      }
+    }
+  },
+  "22 GET /api/customers/118/history [customer]": {
+    "status": 403,
+    "data": {
+      "error": "You can only view your own profile"
+    }
+  },
+  "23 POST /api/customers [admin]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "name",
+          "message": "Name must be at least 2 characters"
+        },
+        {
+          "field": "phone",
+          "message": "Invalid phone number"
+        },
+        {
+          "field": "address",
+          "message": "Address must be at least 5 characters"
+        },
+        {
+          "field": "email",
+          "message": "Invalid email address"
+        }
+      ]
+    }
+  },
+  "24 POST /api/customers [customer]": {
+    "status": 403,
+    "data": {
+      "error": "You do not have permission to perform this action"
+    }
+  },
+  "25 PUT /api/customers/118 [agent]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "phone",
+          "message": "Invalid phone number"
+        }
+      ]
+    }
+  },
+  "26 POST /api/auth/register [anon]": {
+    "status": 201,
+    "data": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTAxLCJyb2xlIjoiQ1VTVE9NRVIiLCJuYW1lIjoiQmFzZWxpbmUgVXNlciIsImlhdCI6MTc5MjI1MTk2NSwiZXhwIjoxNzkyMzM4MzY1fQ.mXo6ylEgwBy1bFwQBY7qubYYFxwpw4Tb8-NxypOlId0",
+      "user": {
+        "id": 101,
+        "name": "Baseline User",
+        "email": "baseline.1792251964921@insure.test",
+        "role": "CUSTOMER",
+        "createdAt": "2026-10-17T15:46:05.640Z",
+        "updatedAt": "2026-10-17T15:46:05.640Z"
+      }
+    }
+  },
+  "27 POST /api/auth/register [anon]": {
+    "status": 400,
+    "data": {
+      "error": "Validation failed",
+      "details": [
+        {
+          "field": "name",
+          "message": "Name must be at least 2 characters"
+        },
+        {
+          "field": "email",
+          "message": "Invalid email address"
+        },
+        {
+          "field": "password",
+          "message": "Password must be at least 8 characters"
+        },
+        {
+          "field": "password",
+          "message": "Password must contain at least one number"
+        }
+      ]
+    }
+  },
+  "28 GET /api/unknown-route [anon]": {
+    "status": 404,
+    "data": {
+      "error": "Route not found: GET /api/unknown-route"
+    }
+  },
+  "90 POST /api/customers (created)": {
+    "status": 201,
+    "data": {
+      "customer": {
+        "id": 126,
+        "name": "Baseline Customer",
+        "dob": "1990-05-20T00:00:00.000Z",
+        "phone": "9812345678",
+        "address": "42 Baseline Street, Pune",
+        "email": "baseline.customer.1792251964921@insure.test",
+        "createdAt": "2026-10-17T15:46:05.651Z",
+        "updatedAt": "2026-10-17T15:46:05.651Z",
+        "userId": null
+      }
+    }
+  },
+  "91 PUT /api/customers/:id (updated)": {
+    "status": 200,
+    "data": {
+      "customer": {
+        "id": 126,
+        "name": "Baseline Customer",
+        "dob": "1990-05-20T00:00:00.000Z",
+        "phone": "9812345679",
+        "address": "42 Baseline Street, Pune",
+        "email": "baseline.customer.1792251964921@insure.test",
+        "createdAt": "2026-10-17T15:46:05.651Z",
+        "updatedAt": "2026-10-17T15:46:05.659Z",
+        "userId": null
+      }
+    }
+  }
+}

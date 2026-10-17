@@ -4,32 +4,34 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test tests/api.test.mjs tests/schema.test.mjs",
+    "test": "node --test --test-concurrency=1 tests/api.test.mjs tests/schema.test.mjs tests/orm-parity.test.mjs",
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio",
-    "db:seed": "node prisma/seed.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node scripts/seed.js",
     "db:seed:demo": "node tests/seed-demo-data.mjs",
     "db:reset": "node tests/reset-demo-data.mjs",
-    "test:schema": "node --test tests/schema.test.mjs"
+    "test:schema": "node --test tests/schema.test.mjs",
+    "test:parity": "node --test tests/orm-parity.test.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@prisma/adapter-pg": "^6.19.3",
-    "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.8",
+    "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "prisma": "^6.19.3"
+    "drizzle-kit": "^0.31.11"
   }
 }
