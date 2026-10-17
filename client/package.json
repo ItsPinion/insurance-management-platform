@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test": "node tests/login-flow.mjs",
     "preview": "vite preview",
     "screenshots": "node tests/screenshots.mjs",
     "test:login": "node tests/login-flow.mjs"

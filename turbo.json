@@ -1,0 +1,81 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": ["**/.env", "**/.env.*local"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": [
+        "API_BASE_URL",
+        "APP_URL",
+        "CHROME_PATH",
+        "FONTCONFIG_PATH",
+        "HOME",
+        "LD_LIBRARY_PATH"
+      ]
+    },
+    "test:login": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": [
+        "APP_URL",
+        "CHROME_PATH",
+        "FONTCONFIG_PATH",
+        "HOME",
+        "LD_LIBRARY_PATH"
+      ]
+    },
+    "screenshots": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": [
+        "APP_URL",
+        "CHROME_PATH",
+        "FONTCONFIG_PATH",
+        "HOME",
+        "LD_LIBRARY_PATH",
+        "OUT_DIR"
+      ]
+    },
+    "prisma:generate": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:seed": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:seed:demo": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:reset": {
+      "cache": false,
+      "outputs": []
+    }
+  }
+}

@@ -8,6 +8,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
     "db:seed:demo": "node tests/seed-demo-data.mjs",

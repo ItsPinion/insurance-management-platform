@@ -21,16 +21,20 @@ Every endpoint of the running application was exercised — happy path *and* the
 error paths (missing/invalid token, wrong role, invalid payload, duplicate
 record, unknown id, unknown route).
 
+Every command runs through Turborepo, so the whole monorepo is driven from
+the repository root (`npm run dev`, `npm test`, `npm run screenshots`) and a
+single workspace can be run on its own with `--filter`.
+
 ---
 
 ## 2. API test suite
 
 ```bash
-# 1. start the API (needs a migrated + seeded database)
-cd server && npm run dev
+# 1. start the app (needs a migrated + seeded database)
+npm run dev            # Turborepo runs the API and the client together
 
 # 2. run the suite against it
-cd server && npm test
+npm test               # or: npx turbo run test --filter=insurance-server
 ```
 
 `server/tests/api.test.mjs` covers:
@@ -58,13 +62,10 @@ The suite removes the rows it creates, so it can be run repeatedly.
 
 ```bash
 # terminal 1
-cd server && npm run dev
+npm run dev            # API + client
 
 # terminal 2
-cd client && npm run dev
-
-# terminal 3
-cd client && npm run screenshots
+npm run screenshots
 ```
 
 `client/tests/screenshots.mjs` drives a real Chromium (Puppeteer) through every
@@ -101,13 +102,10 @@ The result of the last run is written to `docs/screenshots/ui-audit.json`.
 
 ```bash
 # terminal 1
-cd server && npm run dev
+npm run dev            # API + client
 
 # terminal 2
-cd client && npm run dev
-
-# terminal 3
-cd client && npm run test:login
+npm run test:login
 ```
 
 `client/tests/login-flow.mjs` drives a real Chromium through the sign-in paths
@@ -163,7 +161,7 @@ sign-in, which is exactly the reported symptom.
 (three accounts + five customers with policies, claims, payments and documents):
 
 ```bash
-cd server && npm run db:reset
+npm run db:reset          # or: npm run db:reset --workspace insurance-server
 ```
 
 | Account | E-mail | Password | Role |

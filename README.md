@@ -10,6 +10,7 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 
 | Layer | Technology |
 |---|---|
+| Monorepo | Turborepo 2 + npm workspaces |
 | Frontend | React.js + Tailwind CSS |
 | Backend | Node.js + Express.js |
 | Database | PostgreSQL + Prisma ORM |
@@ -24,15 +25,18 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 ## Repository Structure
 
 ```
-insurance-management-platform/
-├── client/     # React frontend
+insurance-management-platform/        # Turborepo root
+├── package.json              # npm workspaces + turbo scripts
+├── turbo.json                # task graph (build, dev, test, lint, screenshots)
+├── package-lock.json         # one lockfile for the whole monorepo
+├── client/                   # workspace "client" — React frontend
 │   ├── src/
 │   │   ├── components/      # Layout (header, sidebar, mobile nav)
 │   │   ├── context/         # AuthContext (JWT session), session helpers
 │   │   ├── pages/           # Login, MyProfile, customers/*
 │   │   └── api/             # axios client + auth interceptor
 │   └── tests/               # login-flow.mjs (sign-in regression), screenshots.mjs
-├── server/     # Express API
+├── server/                   # workspace "insurance-server" — Express API
 │   ├── prisma/            # schema.prisma, migrations, seed.js
 │   ├── src/
 │   │   ├── app.js         # Express app wiring
@@ -48,6 +52,21 @@ insurance-management-platform/
     ├── testing.md         # Test plan, defects found, fixes
     └── screenshots/       # Captured screens for Day 1 – Day 3
 ```
+
+### Turborepo tasks
+
+| Command | Runs |
+|---|---|
+| `npm run dev` | the API and the client together, in parallel |
+| `npm run build` | the production build of the client |
+| `npm run lint` | oxlint over the client |
+| `npm test` | the API suite and the browser sign-in suite |
+| `npm run screenshots` | 23 screens + the DOM audit → `docs/screenshots/` |
+| `npm run db:reset` | the demo dataset (customers, policies, claims, payments) |
+
+Every command can be narrowed to one workspace, e.g.
+`npx turbo run test --filter=insurance-server` or
+`npx turbo run dev --filter=client`.
 
 ## 14-Day Schedule
 
@@ -71,19 +90,20 @@ insurance-management-platform/
 ## Getting Started
 
 ```bash
-# 1. API  (needs PostgreSQL)
-cd server
-cp .env.example .env          # fill in DATABASE_URL + JWT_SECRET
+# 1. install the whole monorepo (one command, one lockfile)
 npm install
-npx prisma migrate dev        # create the schema
-npm run db:seed               # admin / agent / customer accounts
-npm run dev                   # http://localhost:5000
 
-# 2. Frontend
-cd ../client
-npm install
-npm run dev                   # http://localhost:5173  (proxies /api → :5000)
+# 2. API setup (needs PostgreSQL)
+cp server/.env.example server/.env    # fill in DATABASE_URL + JWT_SECRET
+npm run prisma:migrate                 # create the schema
+npm run db:seed                        # admin / agent / customer accounts
+
+# 3. run the API and the client together
+npm run dev                            # API :5000 · client :5173 (/api → :5000)
 ```
+
+Prefer one package on its own? Use the workspace commands directly:
+`npm run dev --workspace client` or `npm run dev --workspace insurance-server`.
 
 ### Demo accounts
 
@@ -99,9 +119,18 @@ policies, claims, payments and documents — for manual testing and screenshots.
 ## Testing
 
 ```bash
-cd server && npm test             # 48 API assertions against a running server
-cd client && npm run test:login   # 6 sign-in scenarios in a real browser
-cd client && npm run screenshots  # 23 screens + DOM audit → docs/screenshots/
+npm run dev            # terminal 1 — the app has to be running
+
+npm test               # terminal 2 — 48 API assertions + 6 sign-in scenarios
+npm run screenshots    # terminal 3 — 23 screens + DOM audit → docs/screenshots/
+```
+
+Both suites run through Turborepo, so a single workspace can be tested on its
+own:
+
+```bash
+npx turbo run test --filter=insurance-server   # API only
+npx turbo run test:login --filter=client       # browser only
 ```
 
 The screenshot runner waits for the network to be idle, the fonts to be loaded

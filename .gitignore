@@ -11,6 +11,9 @@ dist/
 build/
 .next/
 
+# Turborepo
+.turbo/
+
 # Uploads (runtime files)
 server/uploads/*
 !server/uploads/.gitkeep
