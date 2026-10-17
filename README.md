@@ -18,7 +18,7 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 | Validation | Zod |
 | Charts | Chart.js |
 | PDF | PDFKit |
-| Testing | node:test (API) · Puppeteer/Chromium (screenshots + UI audit) |
+| Testing | node:test (API) · Puppeteer/Chromium (sign-in flow, screenshots + UI audit) |
 | Hosting | Vercel (client) · Render (server) |
 
 ## Repository Structure
@@ -28,10 +28,10 @@ insurance-management-platform/
 ├── client/     # React frontend
 │   ├── src/
 │   │   ├── components/      # Layout (header, sidebar, mobile nav)
-│   │   ├── context/         # AuthContext (JWT session)
+│   │   ├── context/         # AuthContext (JWT session), session helpers
 │   │   ├── pages/           # Login, MyProfile, customers/*
 │   │   └── api/             # axios client + auth interceptor
-│   └── tests/screenshots.mjs # Chromium screenshot + UI audit runner
+│   └── tests/               # login-flow.mjs (sign-in regression), screenshots.mjs
 ├── server/     # Express API
 │   ├── prisma/            # schema.prisma, migrations, seed.js
 │   ├── src/
@@ -99,8 +99,9 @@ policies, claims, payments and documents — for manual testing and screenshots.
 ## Testing
 
 ```bash
-cd server && npm test        # 47 API assertions against a running server
-cd client && npm run screenshots   # 23 screens + DOM audit → docs/screenshots/
+cd server && npm test             # 48 API assertions against a running server
+cd client && npm run test:login   # 6 sign-in scenarios in a real browser
+cd client && npm run screenshots  # 23 screens + DOM audit → docs/screenshots/
 ```
 
 The screenshot runner waits for the network to be idle, the fonts to be loaded

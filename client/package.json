@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "screenshots": "node tests/screenshots.mjs"
+    "screenshots": "node tests/screenshots.mjs",
+    "test:login": "node tests/login-flow.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

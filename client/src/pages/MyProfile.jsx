@@ -18,18 +18,33 @@ export default function MyProfile() {
   const [error, setError] = useState('');
   const [checked, setChecked] = useState(false);
 
+  // the session already carries the link once it has been validated
+  const linkedId = user?.customer?.id;
+
   useEffect(() => {
+    // the validated session already carries the link
+    if (linkedId) return undefined;
+    let cancelled = false;
     api
       .get('/auth/me')
       .then(({ data }) => {
+        if (cancelled) return;
         const id = data.user?.customer?.id;
         if (id) setCustomerId(id);
-        else setError('');
+        setError('');
         setChecked(true);
       })
-      .catch((err) => setError(err.response?.data?.error || 'Failed to load your profile'));
-  }, []);
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.response?.data?.error || 'Failed to load your profile');
+        setChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedId]);
 
+  if (linkedId) return <Navigate to={`/customers/${linkedId}`} replace />;
   if (error) {
     return (
       <div

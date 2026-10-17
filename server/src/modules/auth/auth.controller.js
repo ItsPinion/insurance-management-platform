@@ -48,7 +48,9 @@ export async function me(req, res) {
     where: { id: req.user.id },
     include: { customer: { select: { id: true } } },
   });
-  if (!user) throw new ApiError(404, 'User not found');
+  // The token is still signed correctly but the account is gone (deleted or
+  // the database was reset), so the session cannot be used any more.
+  if (!user) throw new ApiError(401, 'Session is no longer valid');
   res.json({ user: publicUser(user) });
 }
 

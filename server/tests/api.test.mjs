@@ -232,6 +232,22 @@ test('GET /api/auth/me with a tampered token returns 401', async () => {
   assert.equal(status, 401);
 });
 
+test('GET /api/auth/me rejects a session whose account no longer exists', async () => {
+  // A token that is signed correctly but points at a deleted account (the row
+  // was removed or the database was reset) must not keep the session alive.
+  const { default: jwt } = await import('jsonwebtoken');
+  const { default: dotenv } = await import('dotenv');
+  dotenv.config({ quiet: true });
+  const token = jwt.sign(
+    { id: 999999, role: 'ADMIN', name: 'Ghost User' },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+  const { status, data } = await api('GET', '/api/auth/me', { token });
+  assert.equal(status, 401);
+  assert.match(data.error, /no longer valid/i);
+});
+
 // --- auth: admin user management -------------------------------------------
 
 test('POST /api/auth/users lets an ADMIN create an agent', async () => {

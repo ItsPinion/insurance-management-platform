@@ -11,7 +11,8 @@ Everything below is repeatable from a clean checkout — no manual steps.
 
 | Layer | Tool | Location | Result |
 |-------|------|----------|--------|
-| API endpoints (47 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 47/47 pass |
+| API endpoints (48 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 48/48 pass |
+| Sign-in flow (6 scenarios) | Puppeteer + Chromium | `client/tests/login-flow.mjs` | 6/6 pass |
 | UI screens (23 screens) | Puppeteer + Chromium | `client/tests/screenshots.mjs` | 23/23 captured, 0 UI issues |
 | Static analysis | oxlint | `client/` | 0 errors |
 | Production build | Vite | `client/` | builds clean |
@@ -39,7 +40,7 @@ cd server && npm test
 | `GET /api/health` | 200 + payload |
 | `POST /api/auth/register` | 201 (CUSTOMER, no password in the response), 400 (name / e-mail / password rules), 409 (duplicate) |
 | `POST /api/auth/login` | 200 (admin, agent, customer), case-insensitive e-mail, 401 (wrong password / unknown user), 400 (malformed e-mail) |
-| `GET /api/auth/me` | 200 (user + linked customer), 401 (no token), 401 (tampered token) |
+| `GET /api/auth/me` | 200 (user + linked customer), 401 (no token), 401 (tampered token), 401 (account deleted — the session is no longer valid) |
 | `POST /api/auth/users` | 201 (admin creates an agent), 400 (invalid role), 403 (agent, customer) |
 | `GET /api/auth/users` | 200 (admin list, no password hashes), 403 (agent) |
 | `GET /api/customers` | 200 (admin, agent), 401 (anonymous), 403 (customer), search by name/e-mail/phone, empty result, pagination, 400 (limit > 100, page < 1) |
@@ -96,7 +97,38 @@ The result of the last run is written to `docs/screenshots/ui-audit.json`.
 
 ---
 
-## 4. Defects found by this run and fixed
+## 4. Sign-in flow tests
+
+```bash
+# terminal 1
+cd server && npm run dev
+
+# terminal 2
+cd client && npm run dev
+
+# terminal 3
+cd client && npm run test:login
+```
+
+`client/tests/login-flow.mjs` drives a real Chromium through the sign-in paths
+and watches the address bar, so a sign-in that ends up on the login screen
+again fails the run.
+
+| # | Scenario | Expected |
+|---|----------|----------|
+| 1 | ADMIN signs in | lands on `/customers`, the list is rendered, `/login` is never visited again |
+| 2 | AGENT signs in | lands on `/customers` |
+| 3 | CUSTOMER signs in | lands on `/my` → the linked customer profile (`/customers/:id`) |
+| 4 | a stale session is in the browser | it is dropped, the login form is shown, the app does not redirect in a loop |
+| 5 | a wrong password | the form stays, an error is shown, no redirect |
+| 6 | a protected page is reloaded | the session survives — the user is not sent back to `/login` |
+
+The runner fails when the address bar visits `/login` after a successful
+sign-in, which is exactly the reported symptom.
+
+---
+
+## 5. Defects found by this run and fixed
 
 | # | Area | Problem | Fix |
 |---|------|---------|-----|
@@ -118,10 +150,14 @@ The result of the last run is written to `docs/screenshots/ui-audit.json`.
 | 16 | `index.css` | Text without an explicit colour fell back to the browser default black, which is not part of the slate design system. | `body { color: var(--color-slate-900) }` |
 | 17 | all forms | The inputs had no `id`/`name`, so labels were not associated with their fields and the fields could not be addressed by tests. | `id` + `name` on every input, `<label htmlFor>` everywhere |
 | 18 | `CustomerDetail.jsx` | The state was reset inside `useEffect` (React Compiler warning). | The loaded record keeps its id, so the loading state is derived during render |
+| 19 | `api/client.js` | Every 401 wiped the session and did a **full page reload** to `/login` — one rejected request was enough to throw a freshly signed-in user back to the login screen. | The interceptor now hands the 401 to the auth context, which verifies the session once and only ends it when the token is really gone. The redirect is a soft router navigation, so no page reload and no lost form state |
+| 20 | `AuthContext.jsx` | The session stored in the browser was trusted without being checked, so an expired or revoked token kept the app in a loop (login → home → 401 → login). | The stored session is validated against `/api/auth/me` on start-up; a session that is no longer valid is dropped and the login form is shown |
+| 21 | `App.jsx` / `Login.jsx` | The route guards decided before the stored session had been validated, so a reload could send a signed-in user to `/login` while the session was still being checked. | The auth context exposes a `checking` state; the guards and the login screen show a loader until the session is known |
+| 22 | `auth.controller.js` | `/api/auth/me` answered `404` when the account behind a valid token no longer existed (deleted account, reset database), so the client could not tell "session invalid" from "not found". | `401 — Session is no longer valid`, which the client treats as "sign out" |
 
 ---
 
-## 5. Test data
+## 6. Test data
 
 `server/tests/reset-demo-data.mjs` restores a clean, reproducible demo state
 (three accounts + five customers with policies, claims, payments and documents):
@@ -141,7 +177,7 @@ accounts).
 
 ---
 
-## 6. Screenshots
+## 7. Screenshots
 
 | File | Screen |
 |------|--------|

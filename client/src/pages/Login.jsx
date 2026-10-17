@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { homePath } from '../context/session';
+import SessionLoader from '../components/SessionLoader';
 
 export default function Login() {
-  const { user, login, register } = useAuth();
+  const { user, status, login, register } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [name, setName] = useState('');
@@ -21,17 +23,23 @@ export default function Login() {
     setDetails([]);
     setLoading(true);
     try {
-      const user = isRegister
+      const signedIn = isRegister
         ? await register(name, email, password)
         : await login(email, password);
-      navigate(user.role === 'CUSTOMER' ? '/my' : '/customers');
+      navigate(homePath(signedIn), { replace: true });
     } catch (err) {
       const data = err.response?.data;
       if (Array.isArray(data?.details) && data.details.length) {
         setDetails(data.details.map((d) => d.message));
         setError(data.error || 'Validation failed');
+      } else if (data?.error) {
+        setError(data.error);
+      } else if (err.message === 'The server did not return a session.') {
+        setError('Sign-in failed: the server did not return a session.');
+      } else if (!err.response) {
+        setError('Cannot reach the server. Please try again in a moment.');
       } else {
-        setError(data?.error || (isRegister ? 'Registration failed' : 'Login failed'));
+        setError(isRegister ? 'Registration failed' : 'Login failed');
       }
     } finally {
       setLoading(false);
@@ -44,8 +52,13 @@ export default function Login() {
     setDetails([]);
   }
 
+  // a stored session is still being validated
+  if (status === 'checking') return <SessionLoader />;
+
   // an active session never needs the login form
-  if (user) return <Navigate to={user.role === 'CUSTOMER' ? '/my' : '/customers'} replace />;
+  if (status === 'authenticated' && user) {
+    return <Navigate to={homePath(user)} replace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
