@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Management Platform — UI Wireframes (Day 1)</title>
+<style>
+  :root{
+    --ink:#334155; --line:#94a3b8; --fill:#e2e8f0; --bg:#f1f5f9;
+    --paper:#ffffff; --accent:#475569; --dash:2px dashed var(--line);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); padding:32px;}
+  h1{font-size:26px; margin-bottom:4px;}
+  .sub{color:#64748b; margin-bottom:28px; font-size:14px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:28px;}
+  .frame{background:var(--paper); border:2px solid var(--ink); border-radius:10px; overflow:hidden; box-shadow:4px 4px 0 #cbd5e1;}
+  .frame h2{font-size:13px; letter-spacing:.06em; text-transform:uppercase; background:var(--ink); color:#fff; padding:8px 14px;}
+  .frame .role{font-weight:400; opacity:.75;}
+  .screen{padding:14px; font-size:11px;}
+  /* wire primitives */
+  .bar{height:34px; border:1.5px solid var(--ink); border-radius:6px; display:flex; align-items:center; gap:8px; padding:0 10px; margin-bottom:10px; background:var(--fill);}
+  .logo{width:22px;height:22px;border:1.5px solid var(--ink);border-radius:50%;display:inline-block;background:#fff;}
+  .pill{border:1.5px solid var(--ink); border-radius:99px; padding:2px 10px; background:#fff;}
+  .pill.ghost{border-style:dashed; color:#64748b;}
+  .spacer{flex:1;}
+  .row{display:flex; gap:10px; margin-bottom:10px;}
+  .col{flex:1;}
+  .box{border:var(--dash); border-radius:6px; padding:10px; margin-bottom:10px; background:#fff;}
+  .box.solid{border:1.5px solid var(--ink); background:var(--fill);}
+  .label{font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; margin-bottom:4px;}
+  .input{height:26px; border:1.5px solid var(--line); border-radius:5px; background:#fff; margin-bottom:8px; display:flex; align-items:center; padding:0 8px; color:#94a3b8;}
+  .btn{display:inline-block; border:1.5px solid var(--ink); border-radius:6px; padding:5px 14px; background:var(--ink); color:#fff; font-weight:600;}
+  .btn.outline{background:#fff; color:var(--ink);}
+  .sidebar-layout{display:flex; gap:10px;}
+  .sidebar{width:96px; border:1.5px solid var(--ink); border-radius:6px; padding:8px; background:var(--fill);}
+  .nav-item{border:1px solid var(--line); border-radius:4px; padding:4px 6px; margin-bottom:6px; background:#fff; font-size:10px;}
+  .nav-item.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .main{flex:1;}
+  table{width:100%; border-collapse:collapse; margin-bottom:8px; background:#fff;}
+  th,td{border:1px solid var(--line); padding:4px 6px; text-align:left; font-size:10px;}
+  th{background:var(--fill); text-transform:uppercase; font-size:9px; letter-spacing:.05em;}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px;}
+  .kpi{border:1.5px solid var(--ink); border-radius:6px; padding:8px; text-align:center; background:#fff;}
+  .kpi b{display:block; font-size:16px;}
+  .chart{border:var(--dash); border-radius:6px; height:90px; display:flex; align-items:flex-end; justify-content:center; gap:6px; padding:10px; background:#fff; margin-bottom:4px;}
+  .cbar{width:14px; background:var(--line); border:1px solid var(--accent);}
+  .donut{width:70px; height:70px; border-radius:50%; border:14px solid var(--line); border-top-color:var(--ink); border-right-color:#cbd5e1; margin:auto;}
+  .line-chart{position:relative;}
+  .line-chart svg{width:100%; height:70px;}
+  .status{border-radius:99px; padding:1px 8px; font-size:9px; border:1px solid var(--ink); background:#fff; white-space:nowrap;}
+  .status.ok{background:var(--ink); color:#fff;}
+  .steps{display:flex; align-items:center; gap:4px; margin-bottom:10px;}
+  .step{flex:1; text-align:center; border:1.5px solid var(--ink); border-radius:99px; padding:3px 0; background:#fff; font-size:9px;}
+  .step.done{background:var(--ink); color:#fff;}
+  .arrow{color:var(--ink); font-weight:bold;}
+  .upload{border:var(--dash); border-radius:6px; padding:16px; text-align:center; color:#64748b; margin-bottom:8px; background:#fff;}
+  .note{font-size:10px; color:#64748b; padding:10px 14px 14px; border-top:1px dashed var(--line); background:#f8fafc;}
+  .pager{display:flex; gap:4px; justify-content:flex-end;}
+  .pager span{border:1px solid var(--line); border-radius:4px; padding:2px 7px; background:#fff;}
+  .pager .cur{background:var(--ink); color:#fff; border-color:var(--ink);}
+</style>
+</head>
+<body>
+
+<h1>📐 Insurance Management Platform — UI Wireframes</h1>
+<p class="sub">Day 1 deliverable · Low-fidelity · 8 key screens · All list screens share search + filter + pagination pattern</p>
+
+<div class="grid">
+
+  <!-- 1 LOGIN -->
+  <div class="frame">
+    <h2>1 · Login / Register <span class="role">— all roles</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> InsureDesk <span class="spacer"></span><span class="pill ghost">Help</span></div>
+      <div class="row" style="justify-content:center;">
+        <div style="width:65%;">
+          <div class="box solid" style="text-align:center;">🛡️ <b>Sign in to your account</b></div>
+          <div class="label">Email</div>
+          <div class="input">you@example.com</div>
+          <div class="label">Password</div>
+          <div class="input">••••••••</div>
+          <div class="row">
+            <span class="btn" style="flex:1; text-align:center;">Login</span>
+          </div>
+          <div class="box" style="text-align:center;">New customer? <u>Create an account</u></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">JWT returned on login → stored client-side → role decides landing page (Admin→Reports, Agent→Claims queue, Customer→My Policies).</div>
+  </div>
+
+  <!-- 2 ADMIN DASHBOARD -->
+  <div class="frame">
+    <h2>2 · Reports Dashboard <span class="role">— Admin</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> InsureDesk <span class="spacer"></span><span class="pill">🔔</span><span class="pill">Admin ▾</span></div>
+      <div class="sidebar-layout">
+        <div class="sidebar">
+          <div class="nav-item active">Dashboard</div>
+          <div class="nav-item">Customers</div>
+          <div class="nav-item">Policies</div>
+          <div class="nav-item">Claims</div>
+          <div class="nav-item">Payments</div>
+          <div class="nav-item">Documents</div>
+          <div class="nav-item">Users</div>
+        </div>
+        <div class="main">
+          <div class="kpis">
+            <div class="kpi"><b>128</b>Active policies</div>
+            <div class="kpi"><b>23</b>Expired</div>
+            <div class="kpi"><b>412</b>Customers</div>
+            <div class="kpi"><b>$84k</b>Premiums MTD</div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="label">Monthly premium collection (bar)</div>
+              <div class="chart"><div class="cbar" style="height:30%"></div><div class="cbar" style="height:55%"></div><div class="cbar" style="height:40%"></div><div class="cbar" style="height:75%"></div><div class="cbar" style="height:60%"></div><div class="cbar" style="height:90%"></div></div>
+            </div>
+            <div class="col">
+              <div class="label">Claims by status (doughnut)</div>
+              <div class="chart"><div class="donut"></div></div>
+            </div>
+          </div>
+          <div class="label">Customer growth (line)</div>
+          <div class="chart line-chart"><svg viewBox="0 0 200 60" preserveAspectRatio="none"><polyline points="0,55 30,48 60,50 90,35 120,30 150,18 200,8" fill="none" stroke="#475569" stroke-width="2"/></svg></div>
+          <span class="btn outline">⬇ Export monthly report (PDF)</span>
+        </div>
+      </div>
+    </div>
+    <div class="note">Chart.js: bar + doughnut + line. KPI cards from /api/reports/summary. PDF export via PDFKit.</div>
+  </div>
+
+  <!-- 3 CUSTOMERS LIST -->
+  <div class="frame">
+    <h2>3 · Customers <span class="role">— Admin / Agent</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> Customers <span class="spacer"></span><span class="btn">+ Register customer</span></div>
+      <div class="row">
+        <div class="input col">🔍 Search name, email, phone…</div>
+        <span class="pill">Sort: Newest ▾</span>
+      </div>
+      <table>
+        <tr><th>Name</th><th>Email</th><th>Phone</th><th>Policies</th><th></th></tr>
+        <tr><td>Asha Verma</td><td>asha@mail.com</td><td>98×××××210</td><td>2</td><td><u>View</u> · <u>Edit</u></td></tr>
+        <tr><td>Rahul Singh</td><td>rahul@mail.com</td><td>97×××××114</td><td>1</td><td><u>View</u> · <u>Edit</u></td></tr>
+        <tr><td>Meera Iyer</td><td>meera@mail.com</td><td>96×××××908</td><td>3</td><td><u>View</u> · <u>Edit</u></td></tr>
+      </table>
+      <div class="pager"><span>‹</span><span class="cur">1</span><span>2</span><span>3</span><span>›</span></div>
+    </div>
+    <div class="note">Row → Customer detail: profile, history tabs (Policies / Claims / Payments / Documents). Modal form for register/edit with Zod validation.</div>
+  </div>
+
+  <!-- 4 POLICIES -->
+  <div class="frame">
+    <h2>4 · Policies <span class="role">— Admin / Agent</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> Policies <span class="spacer"></span><span class="btn">+ Create policy</span></div>
+      <div class="row">
+        <div class="input col">🔍 Policy # or customer…</div>
+        <span class="pill">Status: All ▾</span>
+        <span class="pill">Type: All ▾</span>
+      </div>
+      <table>
+        <tr><th>Policy #</th><th>Customer</th><th>Type</th><th>Premium</th><th>Ends</th><th>Status</th><th></th></tr>
+        <tr><td>POL-0241</td><td>Asha V.</td><td>Health</td><td>$120/mo</td><td>2027-01-10</td><td><span class="status ok">ACTIVE</span></td><td><u>Renew</u> · <u>Cancel</u></td></tr>
+        <tr><td>POL-0198</td><td>Rahul S.</td><td>Vehicle</td><td>$80/mo</td><td>2026-11-02</td><td><span class="status">⚠ 16 days</span></td><td><u>Renew</u> · <u>Cancel</u></td></tr>
+        <tr><td>POL-0143</td><td>Meera I.</td><td>Life</td><td>$210/mo</td><td>2026-06-30</td><td><span class="status">EXPIRED</span></td><td><u>Renew</u></td></tr>
+      </table>
+      <div class="pager"><span>‹</span><span class="cur">1</span><span>2</span><span>›</span></div>
+    </div>
+    <div class="note">Expiring ≤30 days flagged. Create form: customer select, type, auto-generated policy #, premium, start/end dates.</div>
+  </div>
+
+  <!-- 5 CUSTOMER PORTAL -->
+  <div class="frame">
+    <h2>5 · My Policies <span class="role">— Customer</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> InsureDesk <span class="spacer"></span><span class="pill">My Claims</span><span class="pill">Documents</span><span class="pill">Asha ▾</span></div>
+      <div class="box solid"><b>POL-0241 · Health Insurance</b><br>Premium $120/mo · Active until 10 Jan 2027 <span class="status ok">ACTIVE</span>
+        <div style="margin-top:6px;"><span class="btn" style="font-size:10px;">Pay premium</span> <span class="btn outline" style="font-size:10px;">Submit claim</span> <span class="btn outline" style="font-size:10px;">⬇ Policy PDF</span></div>
+      </div>
+      <div class="box"><b>POL-0310 · Vehicle Insurance</b><br>Premium $65/mo · <b>Next due: 24 Oct</b> <span class="status">PAYMENT DUE</span></div>
+      <div class="label">Recent payments</div>
+      <table>
+        <tr><th>Date</th><th>Policy</th><th>Amount</th><th>Status</th></tr>
+        <tr><td>01 Oct</td><td>POL-0241</td><td>$120</td><td><span class="status ok">PAID</span></td></tr>
+        <tr><td>24 Sep</td><td>POL-0310</td><td>$65</td><td><span class="status">OVERDUE</span></td></tr>
+      </table>
+    </div>
+    <div class="note">Customer sees only own data. Due/overdue banners surfaced here (FR-5.4).</div>
+  </div>
+
+  <!-- 6 SUBMIT CLAIM -->
+  <div class="frame">
+    <h2>6 · Submit Claim <span class="role">— Customer</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> New Claim <span class="spacer"></span><span class="pill ghost">POL-0241</span></div>
+      <div class="label">Policy</div>
+      <div class="input">POL-0241 · Health Insurance ▾</div>
+      <div class="label">Claim amount</div>
+      <div class="input">$ 0.00</div>
+      <div class="label">Reason</div>
+      <div class="input" style="height:48px; align-items:flex-start; padding-top:6px;">Describe what happened…</div>
+      <div class="label">Supporting documents</div>
+      <div class="upload">⬆ Drag &amp; drop or <u>browse</u><br><span style="font-size:9px;">PDF / JPG / PNG · max 5 MB each</span></div>
+      <div class="row"><span class="btn">Submit claim</span><span class="btn outline">Cancel</span></div>
+    </div>
+    <div class="note">Multer upload. Zod: amount &gt; 0, reason required, policy must be ACTIVE. On submit → status SUBMITTED.</div>
+  </div>
+
+  <!-- 7 CLAIM REVIEW -->
+  <div class="frame">
+    <h2>7 · Claim Review <span class="role">— Agent</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> Claim #CLM-0097 <span class="spacer"></span><span class="pill ghost">Asha Verma · POL-0241</span></div>
+      <div class="steps">
+        <span class="step done">Submitted</span><span class="arrow">→</span>
+        <span class="step done">Under review</span><span class="arrow">→</span>
+        <span class="step">Approved / Rejected</span>
+      </div>
+      <div class="row">
+        <div class="col">
+          <div class="box"><div class="label">Claim details</div>Amount: <b>$2,400</b><br>Reason: Hospitalization — 3 days<br>Submitted: 14 Oct 2026</div>
+          <div class="box"><div class="label">Documents</div>📄 hospital_bill.pdf <u>view</u><br>📄 discharge_summary.pdf <u>view</u><br>🖼 id_proof.jpg <u>view</u></div>
+        </div>
+        <div class="col">
+          <div class="box"><div class="label">Policy check</div>POL-0241 · ACTIVE ✔<br>Premiums up to date ✔</div>
+          <div class="label">Reviewer remarks</div>
+          <div class="input" style="height:40px;">Add remarks…</div>
+          <div class="row"><span class="btn">✓ Approve</span><span class="btn outline">✗ Reject</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="note">Status transitions enforced server-side. Decision + remarks recorded → visible to customer in claim history.</div>
+  </div>
+
+  <!-- 8 DOCUMENTS -->
+  <div class="frame">
+    <h2>8 · Documents <span class="role">— all roles</span></h2>
+    <div class="screen">
+      <div class="bar"><span class="logo"></span> Documents <span class="spacer"></span><span class="btn">⬆ Upload</span></div>
+      <div class="row">
+        <div class="input col">🔍 Search file name…</div>
+        <span class="pill">Type: All ▾</span>
+      </div>
+      <table>
+        <tr><th>File</th><th>Customer</th><th>Linked to</th><th>Uploaded</th><th></th></tr>
+        <tr><td>📄 id_aadhaar.pdf</td><td>Asha V.</td><td>Identity</td><td>12 Oct</td><td><u>⬇ Download</u></td></tr>
+        <tr><td>📄 policy_POL-0241.pdf</td><td>Asha V.</td><td>POL-0241</td><td>10 Oct</td><td><u>⬇ Download</u></td></tr>
+        <tr><td>📄 hospital_bill.pdf</td><td>Asha V.</td><td>CLM-0097</td><td>14 Oct</td><td><u>⬇ Download</u></td></tr>
+      </table>
+      <div class="pager"><span>‹</span><span class="cur">1</span><span>›</span></div>
+    </div>
+    <div class="note">Customers see own files only; Agents/Admins see all. File metadata in DB, binary on disk (uploads/).</div>
+  </div>
+
+</div>
+
+<p style="margin-top:28px; font-size:12px; color:#64748b;">
+  Shared patterns: top bar + role-aware sidebar · list screens = search + filters + table + pagination ·
+  forms in modals with inline Zod errors · status pills everywhere. High-fidelity styling arrives Day 13 (Tailwind polish).
+</p>
+
+</body>
+</html>

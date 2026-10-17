@@ -1,0 +1,174 @@
+// Insurance Management Platform — Database Schema (Day 2)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+  AGENT
+  CUSTOMER
+}
+
+enum PolicyType {
+  HEALTH
+  LIFE
+  VEHICLE
+  HOME
+  TRAVEL
+}
+
+enum PolicyStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum ClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum DocumentType {
+  IDENTITY
+  POLICY
+  CLAIM
+  OTHER
+}
+
+// ---------- Models ----------
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  password     String // bcrypt hash
+  role         Role      @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // A CUSTOMER user is linked 1–1 to a Customer record
+  customer     Customer?
+
+  // Claims this user (agent/admin) reviewed
+  reviewedClaims Claim[] @relation("ClaimReviewer")
+
+  @@index([role])
+}
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  dob       DateTime
+  phone     String
+  address   String
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Optional link to a login account (customers registered by an
+  // agent may not have a login yet)
+  userId    Int?      @unique
+  user      User?     @relation(fields: [userId], references: [id])
+
+  policies  Policy[]
+  documents Document[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+model Policy {
+  id            Int          @id @default(autoincrement())
+  policyNumber  String       @unique
+  policyType    PolicyType
+  premiumAmount Decimal      @db.Decimal(12, 2)
+  startDate     DateTime
+  endDate       DateTime
+  status        PolicyStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  customerId    Int
+  customer      Customer     @relation(fields: [customerId], references: [id])
+
+  claims        Claim[]
+  payments      PremiumPayment[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model Claim {
+  id             Int         @id @default(autoincrement())
+  claimNumber    String      @unique
+  claimAmount    Decimal     @db.Decimal(12, 2)
+  reason         String
+  status         ClaimStatus @default(SUBMITTED)
+  submissionDate DateTime    @default(now())
+  reviewRemarks  String?
+  reviewedAt     DateTime?
+
+  policyId       Int
+  policy         Policy      @relation(fields: [policyId], references: [id])
+
+  reviewerId     Int?
+  reviewer       User?       @relation("ClaimReviewer", fields: [reviewerId], references: [id])
+
+  documents      Document[]
+
+  @@index([policyId])
+  @@index([status])
+}
+
+model PremiumPayment {
+  id            Int           @id @default(autoincrement())
+  amount        Decimal       @db.Decimal(12, 2)
+  dueDate       DateTime
+  paymentDate   DateTime?
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+
+  policyId      Int
+  policy        Policy        @relation(fields: [policyId], references: [id])
+
+  @@index([policyId])
+  @@index([paymentStatus])
+  @@index([dueDate])
+}
+
+model Document {
+  id         Int          @id @default(autoincrement())
+  fileName   String // original name shown to users
+  filePath   String // path on disk (uploads/…)
+  mimeType   String
+  sizeBytes  Int
+  docType    DocumentType @default(OTHER)
+  uploadedAt DateTime     @default(now())
+
+  customerId Int
+  customer   Customer     @relation(fields: [customerId], references: [id])
+
+  // Optional link when the document supports a claim
+  claimId    Int?
+  claim      Claim?       @relation(fields: [claimId], references: [id])
+
+  @@index([customerId])
+  @@index([claimId])
+}
