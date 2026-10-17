@@ -162,6 +162,43 @@ export const db = drizzle(pool, { schema });
   driver failures in a `DrizzleQueryError`, so `error.js` unwraps `.cause`
   before looking at the code.
 
+### Upgrading a database that Prisma created
+
+The Drizzle schema was written to match the old `schema.prisma` column for
+column, so an existing database does not need to be rebuilt — but
+`drizzle/__drizzle_migrations` does not know about the Prisma migration
+history. Pick one:
+
+* `npm run db:push` — compares the schema with the database and applies only
+  the difference (nothing, if nothing changed). Do this, then mark the initial
+  migration as applied so `db:migrate` stays a no-op:
+
+  ```sql
+  DROP TABLE IF EXISTS "_prisma_migrations";
+  CREATE SCHEMA IF NOT EXISTS drizzle;
+  CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+    id serial PRIMARY KEY, hash text NOT NULL, created_at bigint);
+  -- <hash> = sha256 of the migration file, <when> = the journal's `when`
+  INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
+  SELECT '<hash>', '<when>'
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle.__drizzle_migrations);
+  ```
+
+  ```bash
+  # the two values, from server/:
+  node -e "const c=require('crypto'),f=require('fs');
+    console.log(c.createHash('sha256').update(f.readFileSync('drizzle/0000_init.sql','utf8')).digest('hex'))"
+  node -e "console.log(require('./drizzle/meta/_journal.json').entries[0].when)"
+  ```
+
+* or start clean: `dropdb`/`createdb` the database and run
+  `npm run db:migrate && npm run db:seed && npm run db:seed:demo` — that path is
+  what the CI-style check described in [testing.md](testing.md) exercises.
+
+Either way `npm test` afterwards: the last schema check compares the hashes in
+`drizzle/__drizzle_migrations` with the files in `server/drizzle/`, so a missing
+or edited migration fails loudly.
+
 ## Schema verification
 
 `server/tests/schema.test.mjs` reads the *live* Drizzle schema objects (nothing
