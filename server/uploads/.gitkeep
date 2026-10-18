@@ -1,0 +1,2 @@
+# Kept in git so the uploads directory (ignored by .gitignore) exists on a
+# fresh checkout — the document routes write their files here.
