@@ -13,7 +13,7 @@ for **Administrators**, **Insurance Agents**, and **Customers**.
 | Monorepo | Turborepo 2 + npm workspaces |
 | Frontend | React.js + Tailwind CSS |
 | Backend | Node.js + Express.js |
-| Database | **Neon** (managed PostgreSQL) + Drizzle ORM · typed schema in code, `drizzle-kit` migrations · `@neondatabase/serverless` over HTTPS or a `pg` pool, picked by `DB_DRIVER` |
+| Database | **Neon** (managed PostgreSQL) + Drizzle ORM · typed schema in code, `drizzle-kit` migrations · `@neondatabase/serverless` over HTTPS |
 | Auth | JWT + bcrypt |
 | Uploads | Multer |
 | Validation | Zod |
@@ -46,8 +46,7 @@ insurance-management-platform/        # Turborepo root
 │   │   ├── db/            # schema.js (tables, enums, relations) + index.js (driver + client)
 │   │   ├── middleware/    # auth (JWT + roles), error handling
 │   │   └── modules/       # auth/, customers/  (routes / controller / schemas)
-│   └── tests/             # api / schema / parity / driver tests, seed + reset scripts,
-│                        # tests/helpers/neon-http-proxy.mjs (offline Neon gateway)
+│   └── tests/             # api / schema / parity tests + seed and reset scripts
 └── docs/
     ├── requirements.md    # Requirement analysis (Day 1)
     ├── wireframes.html    # Low-fi UI wireframes (Day 1)
@@ -63,18 +62,16 @@ insurance-management-platform/        # Turborepo root
 | `npm run dev` | the API and the client together, in parallel (one command, two processes) |
 | `npm run build` | the production build of the client |
 | `npm run lint` | oxlint over the client |
-| `npm test` | the API suite, the schema drift check, the Prisma→Drizzle parity check, the Neon-vs-pg driver equality check and the browser sign-in suite |
+| `npm test` | the API suite, the schema drift check, the Prisma→Drizzle parity check and the browser sign-in suite |
 | `npm run test:parity` | replay the 31 captured responses and compare them with the Prisma baseline |
-| `npm run test:driver` | run one workload through both database drivers and require identical JSON |
 | `npm run screenshots` | 23 screens + the DOM audit → `docs/screenshots/` |
-| `npm run db:ping` | preflight — driver, endpoint, latency, row counts, migration state |
+| `npm run db:ping` | preflight — endpoint, latency, row counts, migration state |
 | `npm run db:migrate` | apply `server/drizzle/*.sql` to the database |
 | `npm run db:generate` | diff `src/db/schema.js` and write a new migration |
 | `npm run db:push` | push the schema straight to the database (local experiments) |
 | `npm run db:studio` | browse the data in Drizzle Studio |
 | `npm run db:seed` | the three base accounts (admin / agent / customer) |
 | `npm run db:reset` | the demo dataset (customers, policies, claims, payments) |
-| `npm run db:gateway` | offline stand-in for Neon's SQL-over-HTTP gateway, for exercising the `neon` driver without a route to Neon |
 
 Every command can be narrowed to one workspace, e.g.
 `npx turbo run test --filter=insurance-server` or
@@ -126,30 +123,30 @@ database — `DATABASE_URL` is the whole database configuration.
 
 ### Which database, and how the API reaches it
 
-The project targets **Neon**: in the console, copy *Project → Connection details →
-Pooled connection* into `server/.env`, keeping the `?sslmode=require` suffix.
+The project targets **Neon**, and only Neon: in the console, copy *Project →
+Connection details → Pooled connection* into `server/.env`, keeping the
+`?sslmode=require` suffix.
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx-pooler.us-east-1.aws.neon.tech/dbname?sslmode=require"
-DB_DRIVER=auto          # auto | neon | pg
 ```
 
-| `DB_DRIVER` | Route | Used for |
-|---|---|---|
-| `neon` | `@neondatabase/serverless` over HTTPS (`drizzle-orm/neon-http`) | Neon by default: no sockets held open, works on serverless runtimes, cannot exhaust the pool |
-| `pg` | `node-postgres` pool over TCP + TLS (`drizzle-orm/node-postgres`) | a long-lived server, or a local cluster for offline work |
-| `auto` (default) | `neon` for `*.neon.tech` / `*.neon.ai` hosts, `pg` for everything else | nothing to re-configure when you switch |
+Statements go out as HTTPS requests to Neon's SQL gateway
+(`@neondatabase/serverless` + `drizzle-orm/neon-http`), so the API holds no sockets
+open, runs on any runtime and has no pool to size. `src/db/index.js` is the only
+file that knows about the driver, and it refuses a `DATABASE_URL` that is not a
+Neon endpoint at boot — with the fix written out — instead of failing later as a
+stack of 500s.
 
 `npm run db:ping` prints what the process actually resolved — endpoint (password
-masked), driver, round-trip, `TimeZone`, row counts and whether every migration in
-`server/drizzle/` is applied — and exits non-zero with the reason and a hint when the
-database is not usable. Run it first whenever a connection is in question.
+masked), round-trip, `TimeZone`, row counts, and whether every migration in
+`server/drizzle/` is applied — and exits non-zero with the reason and a hint when
+the database is not usable. Run it first whenever a connection is in question.
 
-Both drivers run the same Drizzle queries against the same schema, and a local
-PostgreSQL keeps working as a fallback (`DATABASE_URL` pointed at `localhost`) —
-`npm run test:driver` proves the two routes answer identically. `drizzle-kit`
-(`db:migrate`, `db:push`, `db:studio`) always connects over the wire protocol, which
-Neon's pooled endpoint accepts. See [docs/database.md](docs/database.md#setup--neon).
+`drizzle-kit` (`db:migrate`, `db:push`, `db:studio`) opens its own PostgreSQL
+wire-protocol socket, which is why the pooled endpoint and its
+`?sslmode=require` matter there too. See
+[docs/database.md](docs/database.md#setup--neon).
 
 Prefer one package on its own? Use the workspace commands directly:
 `npm run dev --workspace client` or `npm run dev --workspace insurance-server`.
@@ -170,7 +167,7 @@ policies, claims, payments and documents — for manual testing and screenshots.
 ```bash
 npm run dev            # terminal 1 — the app has to be running
 
-npm test               # terminal 2 — 92 server assertions + 6 sign-in scenarios
+npm test               # terminal 2 — 85 server assertions + 6 sign-in scenarios
 npm run screenshots    # terminal 3 — 23 screens + DOM audit → docs/screenshots/
 ```
 

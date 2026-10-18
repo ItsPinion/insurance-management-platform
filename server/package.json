@@ -4,21 +4,19 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test --test-concurrency=1 tests/api.test.mjs tests/schema.test.mjs tests/orm-parity.test.mjs tests/neon-driver.test.mjs",
+    "test": "node --test --test-concurrency=1 tests/api.test.mjs tests/schema.test.mjs tests/orm-parity.test.mjs",
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:ping": "node scripts/check-db.js",
-    "db:gateway": "node tests/helpers/neon-http-proxy.mjs --port 5433",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node scripts/seed.js",
     "db:seed:demo": "node tests/seed-demo-data.mjs",
     "db:reset": "node tests/reset-demo-data.mjs",
     "test:schema": "node --test tests/schema.test.mjs",
-    "test:parity": "node --test tests/orm-parity.test.mjs",
-    "test:driver": "node --test tests/neon-driver.test.mjs"
+    "test:parity": "node --test tests/orm-parity.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -32,7 +30,6 @@
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.23.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

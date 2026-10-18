@@ -48,10 +48,14 @@ const titleFor = (key) =>
 const TODAY = new Date().toISOString().slice(0, 10);
 const ID_KEYS = /^(id|customerId|policyId|userId|reviewerId|claimId)$/;
 const COUNT_KEYS = /^(total|totalPages)$/;
+/** columns the database stamps itself (`now()` / `@updatedAt`), so they always hold
+ *  the current instant — matched by key, because "now" is not today's date at midnight */
+const NOW_KEYS = /^(createdAt|updatedAt|uploadedAt)$/;
 
 const normalize = (value, key) => {
   if (typeof value === 'string') {
     if (/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(value)) return '<token>';
+    if (NOW_KEYS.test(key ?? '')) return '<now>';
     if (value.startsWith(TODAY)) return '<now>';
     return value.replace(/\d{13}/g, '<stamp>');
   }
@@ -67,7 +71,7 @@ const normalize = (value, key) => {
 };
 
 // key order is part of the contract, so the compared form is the serialised one
-const render = (value) => JSON.stringify(normalize(value));
+const render = (value, key) => JSON.stringify(normalize(value, key));
 
 /** rows of a list are matched by e-mail, because ids differ between runs */
 const naturalKey = (item) =>
@@ -78,8 +82,8 @@ const notes = [];
 const compare = (base, cur, where = '$') => {
   const problems = [];
 
-  const walk = (x, y, p) => {
-    if (render(x) === render(y)) return;
+  const walk = (x, y, p, k) => {
+    if (render(x, k) === render(y, k)) return;
 
     if (Array.isArray(x) && Array.isArray(y)) {
       const kx = x.map(naturalKey);
@@ -124,7 +128,7 @@ const compare = (base, cur, where = '$') => {
         problems.push(`${p}: fields [${ky.join(', ')}] instead of [${kx.join(', ')}]`);
         return;
       }
-      for (const k of kx) walk(x[k], y[k], `${p}.${k}`);
+      for (const key of kx) walk(x[key], y[key], `${p}.${key}`, key);
       return;
     }
 

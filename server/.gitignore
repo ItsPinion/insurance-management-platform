@@ -1,6 +1,5 @@
-# Local environment — connection strings and secrets never go into git.
-#
-# The API reads `server/.env` at boot (`import 'dotenv/config'`), and
+# Local environment — the Neon connection string and the JWT secret never go into
+# git. The API reads `server/.env` at boot (`import 'dotenv/config'`), and
 # `.env.example` next to it is the committed template — hence the re-inclusion
 # below, because `.env.*` on its own would swallow that file too.
 .env
@@ -12,11 +11,6 @@
 # The directory itself stays tracked through its .gitkeep.
 uploads/*
 !uploads/.gitkeep
-
-# A local PostgreSQL cluster created inside the workspace for offline work
-# (docs/database.md → "Setup — local PostgreSQL"): multi-gigabyte data dirs.
-pgdata/
-pgdata-*/
 
 # Tooling output
 node_modules/

@@ -1,11 +1,11 @@
 /**
  * Database preflight — `npm run db:ping`.
  *
- * Answers one question before anything else runs: *can this API reach the
- * database you configured, and is the schema in place?* It prints the driver, the
- * endpoint (password masked), the round-trip, the PostgreSQL-side settings that
- * the naive `timestamp` columns depend on, the row counts and the migration
- * state — and exits non-zero with a hint when something is missing.
+ * Answers one question before anything else runs: *can this API reach its Neon
+ * project, and is the schema in place?* It prints the endpoint (password masked),
+ * the round-trip, the settings the naive `timestamp` columns depend on, the row
+ * counts and the migration state — and exits non-zero with a specific hint instead
+ * of a driver stack trace.
  *
  * Nothing here writes to the database.
  */
@@ -26,25 +26,26 @@ const fail = (message, hint) => {
   process.exit(1);
 };
 
-const { driver, query, close, ping } = await import('../src/db/index.js').catch((err) =>
-  fail(err.message, 'DATABASE_URL must be set in server/.env (see server/.env.example)'),
+const { close, ping, query, target } = await import('../src/db/index.js').catch((err) =>
+  fail(
+    String(err.message).split('\n')[0],
+    'DATABASE_URL in server/.env must be the pooled connection string from the Neon console ' +
+      '(Project → Connection details, the host ends in "-pooler…")',
+  ),
 );
 
-console.log(`\nDatabase preflight\n${'─'.repeat(60)}`);
+console.log(`\nNeon preflight\n${'─'.repeat(60)}`);
 console.log(`  DATABASE_URL      ${mask(process.env.DATABASE_URL)}`);
-console.log(`  DB_DRIVER         ${driver} (from DB_DRIVER=${process.env.DB_DRIVER ?? 'unset → auto'})`);
+console.log(`  via               ${target.endpoint}`);
 
 const started = process.hrtime.bigint();
 try {
   await Promise.race([
     ping(),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('no answer within 10s')), 10_000),
-    ),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('no answer within 10s')), 10_000)),
   ]);
 } catch (err) {
-  const reason = String(err?.message).split('\n')[0];
-  // the drivers wrap the socket failure, so the useful `code` can be a few
+  // the driver wraps the socket failure, so the useful `code` can be a few
   // `cause`/`sourceError` levels down
   const seen = [];
   for (let cur = err; cur && seen.length < 6; cur = cur.cause ?? cur.sourceError) {
@@ -54,16 +55,19 @@ try {
   }
   const text = seen.join(' ');
   const hints = [
-    [/ECONNRESET|fetch failed|other closed/, 'the connection was reset — a proxy or firewall is blocking port 5432/443. Try the other endpoint (pooled ↔ direct), another network, or a machine with a route to Neon.'],
+    [/ECONNRESET|fetch failed|socket closed/, 'the connection was reset — a proxy or firewall is blocking HTTPS to *.neon.tech. Try the direct endpoint instead of the pooled one (or the other way round), another network, or a machine with a route to Neon.'],
     [/ENOTFOUND|getaddrinfo/, 'the host does not resolve — check the endpoint in DATABASE_URL (Neon console → Connection details).'],
-    [/ECONNREFUSED/, 'nothing is listening on that host/port — is the Neon project awake (projects autosuspend), or is the local cluster running?'],
-    [/no answer within/, 'the host answered but nothing came back — a firewall dropping packets, or the project is suspended.'],
-    [/password authentication failed/, 'the role or password is not the one Neon issued — copy the string again from the console.'],
+    [/ECONNREFUSED/, 'nothing answered on that host — the endpoint is mistyped, or the project was deleted.'],
+    [/no answer within/, 'the host answered but nothing came back — a firewall dropping packets, or the project is suspended (wake it from the console).'],
+    [/password authentication failed|invalid password/, 'the role or password is not the one Neon issued — copy the string again from the console.'],
     [/database "[^"]*" does not exist/, 'the database name in the URL is not the one the project created (Neon uses "neondb" by default).'],
-    [/SSL|TLS|server certificate/i, 'TLS failed — Neon needs `?sslmode=require` in the URL; a local cluster usually does not have it.'],
+    [/role "[^"]*" does not exist/, 'that role does not exist in this project — copy the whole connection string from the console.'],
+    [/SSL|TLS|server certificate/i, 'TLS failed — keep `?sslmode=require` in the URL (that part matters for `drizzle-kit`, which uses the wire protocol).'],
   ];
-  const hint = hints.find(([re]) => re.test(text))?.[1];
-  fail(`cannot reach the database (${reason})`, hint ?? `code: ${err?.code ?? 'n/a'}`);
+  fail(
+    `cannot reach Neon (${String(err?.message).split('\n')[0]})`,
+    hints.find(([re]) => re.test(text))?.[1] ?? `code: ${err?.code ?? 'n/a'}`,
+  );
 }
 const ms = Number(process.hrtime.bigint() - started) / 1e6;
 console.log(`  connect           ok in ${ms.toFixed(0)} ms`);
@@ -73,12 +77,13 @@ const [server] = await query(
           (select setting from pg_settings where name = 'TimeZone') as timezone,
           (select count(*)::int from pg_tables where schemaname = 'public') as tables`,
 );
-console.log(`  server            ${String(server.version).split(', ')[0]} · db "${server.database}" as ${server.user}`);
+console.log(`  server            ${String(server.version).split(',')[0]} · db "${server.database}" as ${server.user}`);
 console.log(`  session           TimeZone=${server.timezone} (the naive timestamp columns expect UTC)`);
 if (!/utc/i.test(server.timezone)) {
   console.log(
-    `                    ⚠️  Neon projects default to UTC; a different zone shifts what now() writes into\n` +
-      `                        timestamp-without-time-zone columns that have a database default`,
+    '                    ⚠️  Neon projects run with TimeZone=UTC; if this was changed, `defaultNow()`\n' +
+      '                        on a timestamp-without-time-zone column stores a different wall clock.\n' +
+      '                        Reset it: ALTER ROLE neondb_owner SET timezone = UTC  (or the project setting)',
   );
 }
 
@@ -104,9 +109,9 @@ const journal = JSON.parse(fs.readFileSync(path.join(root, 'drizzle/meta/_journa
 let applied = new Map();
 try {
   applied = new Map(
-    (await query('select hash::text as hash, created_at::text as created_at from drizzle.__drizzle_migrations')).map(
-      (row) => [row.hash, row.created_at],
-    ),
+    (
+      await query('select hash::text as hash, created_at::text as created_at from drizzle.__drizzle_migrations')
+    ).map((row) => [row.hash, row.created_at]),
   );
 } catch {
   /* the table does not exist yet — handled below */
@@ -126,7 +131,9 @@ for (const entry of journal.entries) {
 if (applied.size === 0) {
   fail(
     'drizzle.__drizzle_migrations is empty, so db:migrate would try to create everything',
-    missing.length ? `run: npm run db:migrate — pending: ${missing.join(', ')}` : 'run: npm run db:migrate',
+    missing.length
+      ? `run: npm run db:migrate — pending: ${missing.join(', ')}`
+      : 'run: npm run db:migrate',
   );
 }
 if (missing.length) {
@@ -135,4 +142,4 @@ if (missing.length) {
 console.log(`  migrations        ${applied.size} applied, journal fully covered ✓`);
 
 await close();
-console.log(`\n✔ Ready — the API can use this database.\n`);
+console.log('\n✔ Ready — the API can use this Neon database.\n');

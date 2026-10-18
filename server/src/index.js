@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
-import { driver, ping } from './db/index.js';
+import { ping, target } from './db/index.js';
 
 const PORT = process.env.PORT || 5000;
 
 const server = createApp().listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ API server running on http://0.0.0.0:${PORT} (database driver: ${driver})`);
+  console.log(`✅ API server running on http://0.0.0.0:${PORT}`);
+  console.log(`   Neon database: ${target.database} @ ${target.host}`);
 });
 
 // A port clash must say what to do instead of dumping a raw stack trace.
@@ -21,15 +22,17 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-// A database that is not up yet must be obvious right away instead of
-// surfacing later as a failed request.
+// A project that cannot be reached must be obvious right away instead of surfacing
+// later as a failed request — a suspended Neon project and a wrong connection
+// string look identical to the client otherwise.
 ping()
   .then(() => console.log('✅ Database connected'))
   .catch((err) => {
     const reason = String(err.message).split('\n')[0];
     console.warn(
-      `⚠️  The database is not reachable over the "${driver}" driver (${reason}). ` +
-        'The API starts, but every request that needs the database will fail ' +
-        'until PostgreSQL is up and DATABASE_URL points at it.',
+      `⚠️  The Neon database "${target.database}" is not reachable (${reason}). ` +
+        'The API starts, but every request that needs the database will fail until the ' +
+        'project is awake, DATABASE_URL is the pooled string from the Neon console, and ' +
+        'this machine has a route to it. `npm run db:ping` says which of those it is.',
     );
   });

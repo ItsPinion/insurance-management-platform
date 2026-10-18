@@ -8,10 +8,10 @@ if (!DATABASE_URL) {
   );
 }
 
-// drizzle-kit always speaks the PostgreSQL wire protocol (never Neon's HTTP proxy),
-// so it needs a host that accepts a TLS socket. Neon's pooled endpoint does, and
-// `sslmode=require` is how node-postgres is told to use it — added here so a URL
-// pasted without it still connects instead of hanging on a plain-TCP handshake.
+// The API talks to Neon over HTTPS, but drizzle-kit opens its own PostgreSQL
+// wire-protocol socket — and `sslmode=require` is what tells it to use TLS for
+// that. Neon's pooled endpoint accepts it, so the flag is appended here when a
+// pasted URL left it out, instead of the tool hanging on a plain-TCP handshake.
 const isNeon = /\.neon\.(tech|ai)(:\d+)?\//.test(DATABASE_URL);
 const url =
   isNeon && !/[?&]sslmode=/.test(DATABASE_URL)

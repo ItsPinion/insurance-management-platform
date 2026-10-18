@@ -14,7 +14,6 @@ Everything below is repeatable from a clean checkout — no manual steps.
 | API endpoints (48 assertions) | `node:test` + `fetch` | `server/tests/api.test.mjs` | 48/48 pass |
 | Database schema (7 checks) | `node:test` + Drizzle schema metadata | `server/tests/schema.test.mjs` | 7/7 pass |
 | Response parity vs the Prisma implementation (31 responses) | `node:test` + `fetch` | `server/tests/orm-parity.test.mjs` | 30/30 tests, 31/31 responses identical |
-| Database drivers (Neon HTTP vs `pg` pool, 7 checks) | `node:test` + a local Neon gateway stand-in | `server/tests/neon-driver.test.mjs` | 7/7 pass, both drivers byte-identical under `TZ=Asia/Kolkata` |
 | Sign-in flow (6 scenarios) | Puppeteer + Chromium | `client/tests/login-flow.mjs` | 6/6 pass |
 | UI screens (23 screens) | Puppeteer + Chromium | `client/tests/screenshots.mjs` | 23/23 captured, 0 UI issues |
 | Static analysis | oxlint | `client/` | 0 errors |
@@ -99,7 +98,7 @@ and `pg_enum`, and finally re-hashes the files in `server/drizzle/` against
 | `GET /api/customers/:id/history` | 200 (policies + claims + payments + documents), 200 for the owning customer, 403 for another customer, 404 |
 | unknown route | 404 JSON error |
 
-The suite removes the rows it creates (through the same `pg` pool the API
+The suite removes the rows it creates (through the same driver the API
 uses), so the database is left exactly as it was found and the suite can be run
 repeatedly without polluting the demo data. The demo state itself is restored
 with `npm run db:reset`.
@@ -253,8 +252,8 @@ The same suite was run against a **brand-new database**
 85/85 — which is the proof that the Drizzle migrations alone are enough to
 build the whole schema from scratch.
 
-Totals for `npm test`: **92 server assertions** (48 API + 7 schema drift +
-30 parity + 7 driver equality) and **6 browser sign-in scenarios**.
+Totals for `npm test`: **85 server assertions** (48 API + 7 schema drift +
+30 parity) and **6 browser sign-in scenarios**.
 
 ---
 
@@ -308,75 +307,56 @@ accounts).
 
 ---
 
-## 10. Database driver verification (local PostgreSQL → Neon)
+## 10. Reaching the database (Neon only)
 
-The API was moved from a locally installed PostgreSQL to **Neon**. Nothing in
-the routes, the schema or the responses changed, and that is checked from both
-sides.
+The API has one database target: a Neon project, reached with
+`@neondatabase/serverless` over HTTPS. There is no driver switch to compare and no
+local cluster to fall back on, so what is verified here is that the application
+works against Neon — and that a database it cannot reach is visible at boot.
 
 | Question | Evidence |
 |---|---|
-| Does the database still look the same? | `server/tests/schema.test.mjs` (7 checks) runs against the live database and compares it with the Drizzle schema objects and the migration journal — independent of the driver used to read it |
-| Do the responses still look the same? | `server/tests/orm-parity.test.mjs` replays the 31 captured Prisma responses; it was run against an API on each driver and both runs report **31/31 identical** |
-| Do the two drivers agree? | `server/tests/neon-driver.test.mjs` runs one workload (reads, a grouped `count`, a cross-driver write/read, a unique violation, a `defaultNow()` column) through **both** drivers in the same process and compares the serialised results — 7/7 |
-| Is a date still the date that was typed in? | the driver test pins `process.env.TZ = 'Asia/Kolkata'` before anything is imported, so a driver that parsed `timestamp without time zone` in local time would shift `dob` by 5:30 and fail |
-| Is the HTTP path really being exercised? | the test asserts the gateway saw the statements, and it fails when `DATABASE_URL`'s host does not select the `neon` driver |
+| Does the database still look the same as the schema? | `server/tests/schema.test.mjs` (7 checks) reads the live database and compares it with the Drizzle schema objects and the migration journal in `server/drizzle/meta/` |
+| Do the responses still look the same as the Prisma implementation's? | `server/tests/orm-parity.test.mjs` replays the 31 captured responses against the running API and compares them with the committed baseline — **31/31 identical** |
+| Is a date still the date that was typed in? | `timestamp(3)` columns are written and read as UTC text by the HTTP driver, so `dob` survives a non-UTC process; `db:ping` warns when the project's `TimeZone` is not `UTC` |
+| Is a misconfigured URL caught before the first request? | `src/db/index.js` throws at boot on a `DATABASE_URL` that is not a Neon endpoint, and the API's startup probe warns and names `npm run db:ping` when the project does not answer |
 
-### The offline Neon gateway
-
-A test run has no route to `neon.tech`, so `server/tests/helpers/neon-http-proxy.mjs`
-stands in for Neon's SQL-over-HTTP gateway: it answers `POST /sql` in the same shape
-(`{ query, params }` in, `{ fields, rows }` out with **every value in PostgreSQL's
-text format**, HTTP 400 with `{ message, code }` on failure) and forwards each
-statement to a real cluster. The driver, the SQL, the type OIDs and the parsing are
-the production ones — only the network hop is local. The application points at it
-with `NEON_FETCH_ENDPOINT`, which also makes it possible to run the *whole* suite
-against an API that talks Neon's protocol:
-
-```bash
-# 1. the gateway, in front of a reachable cluster (LOCAL_DATABASE_URL, or --target)
-npm run db:gateway
-
-# 2. the API, configured with a Neon URL but answering through the gateway
-NEON_FETCH_ENDPOINT="http://127.0.0.1:5433/sql" npm run dev
-
-# 3. every suite, unchanged
-npm test
-```
-
-`npm run db:ping` is the one-command version of "is this database usable": it prints
-the driver the URL resolved to, the masked endpoint, the latency, the server
-`TimeZone`, the row counts and the migration state, and exits non-zero with a hint
-when it is not. For a workshop machine (or anywhere with a route to Neon) the
-checklist is:
+### Running everything against Neon
 
 ```bash
 npm install
 cp server/.env.example server/.env     # paste Neon's pooled string + JWT_SECRET
-npm run db:ping                        # → "✔ Ready — the API can use this database."
+npm run db:ping                        # → "✔ Ready — the API can use this Neon database."
 npm run db:migrate && npm run db:seed && npm run db:reset
-npm run dev                            # "(database driver: neon)" + "✅ Database connected"
-npm test                               # 92 server assertions + 6 sign-in scenarios
+npm run dev                            # "Neon database: <db> @ <host>" + "✅ Database connected"
+npm test                               # 85 server assertions + 6 sign-in scenarios
 ```
 
-Against an unreachable host — a firewall, a suspended project — `db:ping` is a
-diagnosis rather than a crash: `cannot reach the database (…) ↳ hint`.
+`npm run db:ping` is the one-command version of "is this database usable": the
+masked URL, the gateway the driver posts to, the latency, the server `TimeZone`,
+the row counts and the migration state — and, when it is not usable, a non-zero
+exit with the specific hint (reset by a firewall, name not resolved, connection
+refused, wrong password, missing database, TLS required). Against an unreachable
+host it is a diagnosis rather than a crash.
 
-### Result
+### Rehearsing the protocol without Neon
 
-| Run | Driver | Result |
-|---|---|---|
-| local PostgreSQL, `DB_DRIVER=pg` | `pg` pool | **92/92** |
-| local PostgreSQL behind the Neon gateway, `DB_DRIVER=neon` | `@neondatabase/serverless` over HTTPS | **92/92**, same 31/31 responses |
+`NEON_FETCH_ENDPOINT` makes the driver send its `POST /sql` requests somewhere
+else: a proxy in front of Neon, or a stand-in for it. The stand-in answers in
+Neon's shape — `{query, params}` in, `{fields: [{name, dataTypeID}], rows: [[…]]}`
+out with every value in PostgreSQL's text format, HTTP 400 with `{message, code}`
+on failure — so the driver, the SQL, the type OIDs and the parsing are the
+production ones and only the network hop is local.
 
-Two behaviours were written for the HTTP driver specifically, both documented in
-`docs/database.md`: no `db.transaction()` / `PREPARE` / session `SET` anywhere in
-the API (the gateway has no session), and `close()` instead of `pool.end()` in the
-scripts and tests, because the HTTP driver holds nothing to release.
+That is how this suite was re-run on a machine with no route to `neon.tech` after
+the driver was made Neon-only: a loopback shim in front of a disposable cluster,
+`DATABASE_URL` for the tools, `NEON_FETCH_ENDPOINT` for the API, and the same
+commands as above. The shim is deliberately not part of the repository — it exists
+only to exercise the protocol, and nothing in the application refers to it beyond
+the one environment variable.
 
-`turbo.json` lists `DATABASE_URL`, `DB_DRIVER`, `NEON_FETCH_ENDPOINT`,
-`DATABASE_POOL_MAX`, `JWT_SECRET`, `JWT_EXPIRES_IN` and `PORT` in `globalEnv`, so
-an override on the command line reaches the task process — Turborepo does not
-forward environment variables that its config does not know about, and `server/.env`
-(dotenv) remains the place the values normally live.
-
+`turbo.json` lists `DATABASE_URL`, `NEON_FETCH_ENDPOINT`, `JWT_SECRET`,
+`JWT_EXPIRES_IN` and `PORT` in `globalEnv`, so an override on the command line
+reaches the task process — Turborepo does not forward environment variables that its
+config does not know about, and `server/.env` (dotenv) remains the place the values
+normally live.
